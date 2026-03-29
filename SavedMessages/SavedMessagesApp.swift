@@ -17,7 +17,9 @@ struct SavedMessagesApp: App {
                 // anything saved by the Share Extension while the app was
                 // inactive (or not running) appears immediately.
                 print("SavedMessagesApp: scene became active – reloading items")
-                StorageService.shared.loadItems()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    StorageService.shared.loadItems()
+                }
             }
         }
     }

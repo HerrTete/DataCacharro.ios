@@ -15,6 +15,9 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     nonisolated(unsafe) private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
     nonisolated(unsafe) private var sourceAppTag: String?
+    // Set to true once processing is finalised so late-arriving provider
+    // callbacks cannot append items after the tag picker has been shown.
+    nonisolated(unsafe) private var pendingItemsFrozen = false
 
     // Generic bundle ID segments that do not carry a meaningful app name.
     private static let bundleIDSkipTokens: Set<String> = [
@@ -241,7 +244,11 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private func showTagPickerIfNeeded() {
         guard !tagPickerShown else { return }
         tagPickerShown = true
+        // Freeze the list so any late-arriving provider callbacks (e.g. when
+        // the provider-processing timeout fires while callbacks are still
+        // in-flight) cannot append more items after this point.
         itemsLock.lock()
+        pendingItemsFrozen = true
         let collected = pendingItems.count
         itemsLock.unlock()
 
@@ -470,6 +477,11 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             item.sourceApp = sourceAppTag
         }
         itemsLock.lock()
+        guard !pendingItemsFrozen else {
+            itemsLock.unlock()
+            print("ShareExtension: addPendingItem – items are frozen, ignoring late-arriving item '\(item.title)'")
+            return
+        }
         pendingItems.append(item)
         itemsLock.unlock()
     }
