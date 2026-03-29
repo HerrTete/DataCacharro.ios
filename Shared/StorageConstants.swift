@@ -7,8 +7,11 @@ enum StorageConstants {
     static let filesDirectoryName = "Files"
 
     static var appGroupURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
-            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) {
+            return url
+        }
+        print("StorageConstants: App Group '\(appGroupID)' not available – falling back to documentDirectory. Check that the App Group capability is enabled in both targets.")
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
     }
 
     static var filesURL: URL? {

@@ -193,6 +193,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     // MARK: - Processing
 
     private let locationTimeout: TimeInterval = 5.0
+    private let providerProcessingTimeout: TimeInterval = 20.0
 
     private func processSharedItems() {
         sourceAppTag = resolveSourceAppName()
@@ -213,7 +214,17 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             }
         }
 
+        // Safety net: if a provider's async callback never fires (system bug),
+        // the DispatchGroup would never notify. Proceed after 20 s with whatever
+        // items were collected so the extension never hangs forever.
+        let providerTimeoutItem = DispatchWorkItem { [weak self] in
+            print("ShareExtension: provider processing timed out – proceeding with collected items")
+            self?.showTagPickerIfNeeded()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + providerProcessingTimeout, execute: providerTimeoutItem)
+
         group.notify(queue: .main) {
+            providerTimeoutItem.cancel()
             // Schedule a 5-second timeout so we always proceed even if location never arrives.
             let timeoutItem = DispatchWorkItem { [weak self] in self?.showTagPickerIfNeeded() }
             DispatchQueue.main.asyncAfter(deadline: .now() + self.locationTimeout, execute: timeoutItem)
@@ -247,6 +258,20 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private func showTagPicker() {
         spinner?.stopAnimating()
         spinner?.isHidden = true
+
+        // If the view is not yet attached to a window (e.g. due to an extension
+        // lifecycle race), skip the interactive picker and commit immediately so
+        // items are never silently lost.
+        guard view.window != nil else {
+            print("ShareExtension: view not in window hierarchy – committing directly without tag picker")
+            itemsLock.lock()
+            let count = pendingItems.count
+            itemsLock.unlock()
+            let success = commitPendingItems()
+            showResult(success: success, count: count)
+            return
+        }
+
         hudContainer.isHidden = true
 
         let tags = loadExistingTags()
@@ -271,7 +296,10 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
         let hostingController = UIHostingController(rootView: tagView)
         hostingController.isModalInPresentation = true
-        present(hostingController, animated: true)
+        print("ShareExtension: presenting tag picker")
+        present(hostingController, animated: true) {
+            print("ShareExtension: tag picker presented successfully")
+        }
     }
 
     private func applySelectedTags(_ selectedTags: Set<String>) {
