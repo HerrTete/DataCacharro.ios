@@ -432,6 +432,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     /// `loadItem(forTypeIdentifier:)` which can return URLs, raw `Data`, or
     /// `UIImage` objects directly.
     nonisolated private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
+        let suggestedName = provider.suggestedName
         provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, loadError in
             guard let self else {
                 print("ShareExtension: loadItem fallback – view controller deallocated before completion")
@@ -443,13 +444,13 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                     self.addPendingItem(dataItem)
                 }
             } else if let data = item as? Data {
-                let name = provider.suggestedName ?? "file"
+                let name = suggestedName ?? "file"
                 let mimeType = UTType(typeIdentifier)?.preferredMIMEType ?? "application/octet-stream"
                 if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
                     self.addPendingItem(dataItem)
                 }
             } else if let image = item as? UIImage {
-                let name = provider.suggestedName ?? "image"
+                let name = suggestedName ?? "image"
                 if let jpegData = image.jpegData(compressionQuality: 0.9) {
                     if let dataItem = self.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
                         self.addPendingItem(dataItem)

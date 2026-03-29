@@ -11,7 +11,7 @@ struct SavedMessagesApp: App {
                 .environmentObject(storage)
                 .onAppear { LocationService.shared.start() }
         }
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 // Reload items whenever the app comes to the foreground so that
                 // anything saved by the Share Extension while the app was
