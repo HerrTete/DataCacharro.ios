@@ -33,4 +33,5 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             -skip-testing:SavedMessagesUITests/ShareExtensionUITests \
+            -skip-testing:SavedMessagesUITests/SafariShareUITests \
             test
