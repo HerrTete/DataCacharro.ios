@@ -750,7 +750,7 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Swipe right to reveal Tags action
         itemText.swipeRight()
-        let tagsButton = app.buttons["Tags"]
+        let tagsButton = app.buttons["swipeTagsButton"]
         if tagsButton.waitForExistence(timeout: 2) {
             tagsButton.tap()
             // Quick Tag view should open
@@ -874,7 +874,9 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("Bulk delete 2")
 
         // Enter selection mode
-        app.buttons["selectButton"].tap()
+        let selectButton = app.buttons["selectButton"]
+        XCTAssertTrue(selectButton.waitForExistence(timeout: 3), "Select button should be visible when items are present")
+        selectButton.tap()
         XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 2))
 
         // Select all
@@ -914,7 +916,9 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("Count delete 2")
 
         // Enter selection mode and select all
-        app.buttons["selectButton"].tap()
+        let selectButton = app.buttons["selectButton"]
+        XCTAssertTrue(selectButton.waitForExistence(timeout: 3), "Select button should be visible when items are present")
+        selectButton.tap()
         XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 2))
         app.buttons["selectButton"].tap()
 

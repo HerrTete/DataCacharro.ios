@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+@preconcurrency import Foundation
 import UniformTypeIdentifiers
 import CoreLocation
 

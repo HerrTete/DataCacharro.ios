@@ -43,6 +43,7 @@ struct ItemListView: View {
                                 Label("Tags", systemImage: "tag")
                             }
                             .tint(.blue)
+                            .accessibilityIdentifier("swipeTagsButton")
                         }
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
