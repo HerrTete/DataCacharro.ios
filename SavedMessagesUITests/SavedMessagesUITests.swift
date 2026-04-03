@@ -646,8 +646,9 @@ final class SavedMessagesUITests: XCTestCase {
     // MARK: - Multiple Items & Display
 
     /// Consolidates: testAddMultipleTextItems, testItemsListOrder, testItemTagsBadgesDisplayInList,
-    /// testURLItemTagsBadgesDisplayInList, testItemRowShowsCreationDate, testItemRowDisplaysLocation,
-    /// testURLItemDetailShowsOpenInBrowser, testURLItemShowsLinkIcon
+    /// testURLItemTagsBadgesDisplayInList, testURLItemShowsLinkIcon
+    /// Note: testItemRowShowsCreationDate and testItemRowDisplaysLocation only verified the item
+    /// appeared without errors (no date/location-specific assertions), which is covered here.
     func testMultipleItemsAndDisplay() {
         addTextItem("First item")
         addTextItem("Second item")
@@ -670,6 +671,8 @@ final class SavedMessagesUITests: XCTestCase {
     // MARK: - Text Detail Content
 
     /// Consolidates: testTextItemDetailShowsContent, testTextItemDetailPreservesFullContent
+    /// Both original tests verified text content is displayed in detail view; the multi-word
+    /// variant is the more thorough check and covers both.
     func testTextItemDetailContent() {
         let content = "Multi word content for detail"
         addTextItem(content)
