@@ -119,26 +119,13 @@ final class SafariShareUITests: XCTestCase {
         extensionButton.tap()
     }
 
-    /// Waits for the tag picker to appear and taps Save.
-    private func completeTagPickerAndSave() {
-        let tagPickerNav = safari.navigationBars["Add Tags"]
-        XCTAssertTrue(
-            tagPickerNav.waitForExistence(timeout: 10),
-            "Tag picker should appear after share extension processes the URL"
-        )
-
-        let saveButton = tagPickerNav.buttons["Save"]
-        XCTAssertTrue(saveButton.exists, "Save button should be visible in tag picker")
-        saveButton.tap()
-    }
-
-    /// Waits for the share extension to dismiss.
+    /// Waits for the share extension to dismiss after saving.
     private func waitForExtensionDismissal() {
-        // After saving, the extension shows a brief success HUD and dismisses.
+        // The extension saves immediately and shows a brief success HUD, then dismisses.
         // Wait for Safari's UI to return.
         let safariToolbar = safari.toolbars.firstMatch
         XCTAssertTrue(
-            safariToolbar.waitForExistence(timeout: 10),
+            safariToolbar.waitForExistence(timeout: 15),
             "Safari should return to foreground after extension dismisses"
         )
     }
@@ -162,13 +149,10 @@ final class SafariShareUITests: XCTestCase {
         // 4. Find and tap the SavedMessages extension
         tapSavedMessagesExtension()
 
-        // 5. Complete the tag picker and save
-        completeTagPickerAndSave()
-
-        // 6. Wait for the extension to dismiss
+        // 5. Wait for the extension to save and dismiss
         waitForExtensionDismissal()
 
-        // 7. Switch to the main app and verify the URL was saved
+        // 6. Switch to the main app and verify the URL was saved
         app.activate()
         XCTAssertTrue(
             app.navigationBars["SavedMessages"].waitForExistence(timeout: 5),

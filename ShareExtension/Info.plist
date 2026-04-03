@@ -47,7 +47,5 @@
         <key>NSExtensionPrincipalClass</key>
         <string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
     </dict>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>SavedMessages captures your current location when saving items so you can remember where they were saved.</string>
 </dict>
 </plist>

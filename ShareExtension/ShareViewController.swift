@@ -1,38 +1,18 @@
-import SwiftUI
 import UIKit
-@preconcurrency import Foundation
 import UniformTypeIdentifiers
-import CoreLocation
 
-class ShareViewController: UIViewController, CLLocationManagerDelegate {
+class ShareViewController: UIViewController {
 
-    // MARK: - Pending items (collected from all providers, saved once at the end)
+    // MARK: - Pending items
 
-    // These properties are accessed from nonisolated methods (called by
-    // @Sendable completion handlers that run on arbitrary queues).  They are
-    // protected by `itemsLock` (or, in the case of `sourceAppTag`, written
-    // once on the main thread before any background callback is scheduled),
-    // so the `nonisolated(unsafe)` annotation is safe.
-    nonisolated(unsafe) private var pendingItems: [DataItem] = []
+    private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
-    nonisolated(unsafe) private var sourceAppTag: String?
-    // Set to true once processing is finalised so late-arriving provider
-    // callbacks cannot append items after the tag picker has been shown.
-    nonisolated(unsafe) private var pendingItemsFrozen = false
+    private var sourceAppTag: String?
 
     // Generic bundle ID segments that do not carry a meaningful app name.
     private static let bundleIDSkipTokens: Set<String> = [
         "com", "net", "org", "io", "app", "ios", "co", "de", "uk", "eu", "gov", "edu", "main"
     ]
-
-    // MARK: - Location
-
-    private var locationManager: CLLocationManager?
-    private let geocoder = CLGeocoder()
-    private var currentLocationString: String?
-    private let locationGroup = DispatchGroup()
-    private var didLeaveLocationGroup = false
-    private let locationLock = NSLock()
 
     // MARK: - HUD UI
 
@@ -40,21 +20,19 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private let iconView = UIImageView()
     private let statusLabel = UILabel()
     private var spinner: UIActivityIndicatorView?
+    private let hudDismissDelay: TimeInterval = 1.2
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupHUD()
-        setupLocation()
     }
 
     private var didStartProcessing = false
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // Start processing only once. viewDidAppear also fires when the
-        // tag-picker sheet is dismissed, so the guard prevents a second run.
         guard !didStartProcessing else { return }
         didStartProcessing = true
         processSharedItems()
@@ -127,80 +105,16 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             statusLabel.text = "Error"
         }
 
-        let hudDismissDelay: TimeInterval = 1.2
         DispatchQueue.main.asyncAfter(deadline: .now() + hudDismissDelay) {
-            self.completeRequest()
+            self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
         }
-    }
-
-    // MARK: - Location
-
-    private func setupLocation() {
-        let mgr = CLLocationManager()
-        mgr.delegate = self
-        mgr.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        locationManager = mgr
-        locationGroup.enter()
-        // locationManagerDidChangeAuthorization fires shortly after delegate is set
-        // and handles all authorization states; requestWhenInUseAuthorization triggers
-        // the dialog when status is .notDetermined.
-        mgr.requestWhenInUseAuthorization()
-    }
-
-    /// Leave the location dispatch group at most once to prevent crashes from
-    /// unbalanced enter/leave pairs (e.g. when the delegate fires multiple times).
-    private func leaveLocationGroup() {
-        locationLock.lock()
-        defer { locationLock.unlock() }
-        guard !didLeaveLocationGroup else { return }
-        didLeaveLocationGroup = true
-        locationGroup.leave()
-    }
-
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            manager.requestLocation()
-        case .denied, .restricted:
-            leaveLocationGroup()
-        case .notDetermined:
-            break
-        @unknown default:
-            leaveLocationGroup()
-        }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else {
-            leaveLocationGroup()
-            return
-        }
-        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
-            // Geocoding errors are intentionally ignored; location is a best-effort feature.
-            if let placemark = placemarks?.first {
-                var parts: [String] = []
-                if let locality = placemark.locality { parts.append(locality) }
-                if let adminArea = placemark.administrativeArea { parts.append(adminArea) }
-                if let country = placemark.country { parts.append(country) }
-                if !parts.isEmpty {
-                    self?.currentLocationString = parts.joined(separator: ", ")
-                }
-            }
-            self?.leaveLocationGroup()
-        }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        leaveLocationGroup()
     }
 
     // MARK: - Processing
 
-    private let locationTimeout: TimeInterval = 5.0
-    private let providerProcessingTimeout: TimeInterval = 20.0
-
     private func processSharedItems() {
         sourceAppTag = resolveSourceAppName()
+
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
             showResult(success: false, count: 0)
             return
@@ -218,169 +132,47 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             }
         }
 
-        // Safety net: if a provider's async callback never fires (system bug),
-        // the DispatchGroup would never notify. Proceed after 20 s with whatever
-        // items were collected so the extension never hangs forever.
-        let providerTimeoutItem = DispatchWorkItem { [weak self] in
-            print("ShareExtension: provider processing timed out – proceeding with collected items")
-            self?.showTagPickerIfNeeded()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + providerProcessingTimeout, execute: providerTimeoutItem)
-
-        group.notify(queue: .main) {
-            providerTimeoutItem.cancel()
-            // Schedule a 5-second timeout so we always proceed even if location never arrives.
-            let timeoutItem = DispatchWorkItem { [weak self] in self?.showTagPickerIfNeeded() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + self.locationTimeout, execute: timeoutItem)
-            // Show tag picker as soon as location result is available (or immediately if already done).
-            self.locationGroup.notify(queue: .main) { [weak self] in
-                timeoutItem.cancel()
-                self?.showTagPickerIfNeeded()
-            }
-        }
-    }
-
-    private var tagPickerShown = false
-
-    private func showTagPickerIfNeeded() {
-        guard !tagPickerShown else { return }
-        tagPickerShown = true
-        // Freeze the list so any late-arriving provider callbacks (e.g. when
-        // the provider-processing timeout fires while callbacks are still
-        // in-flight) cannot append more items after this point.
-        itemsLock.lock()
-        pendingItemsFrozen = true
-        let collected = pendingItems.count
-        itemsLock.unlock()
-
-        guard collected > 0 else {
-            showResult(success: false, count: 0)
-            return
-        }
-
-        showTagPicker()
-    }
-
-    // MARK: - Tag picker
-
-    private func showTagPicker() {
-        spinner?.stopAnimating()
-        spinner?.isHidden = true
-
-        // If the view is not yet attached to a window (e.g. due to an extension
-        // lifecycle race), skip the interactive picker and commit immediately so
-        // items are never silently lost.
-        guard view.window != nil else {
-            print("ShareExtension: view not in window hierarchy – committing directly without tag picker")
-            itemsLock.lock()
-            let count = pendingItems.count
-            itemsLock.unlock()
-            let success = commitPendingItems()
-            showResult(success: success, count: count)
-            return
-        }
-
-        hudContainer.isHidden = true
-
-        let tags = loadExistingTags()
-        let tagView = ShareTagPickerView(existingTags: tags) { [weak self] selectedTags in
+        group.notify(queue: .main) { [weak self] in
             guard let self else { return }
-            self.applySelectedTags(selectedTags)
-            self.dismiss(animated: true) {
-                DispatchQueue.main.async {
-                    let success = self.commitPendingItems()
-                    self.itemsLock.lock()
-                    let count = self.pendingItems.count
-                    self.itemsLock.unlock()
-                    self.hudContainer.isHidden = false
-                    self.showResult(success: success, count: count)
-                }
+            self.itemsLock.lock()
+            let count = self.pendingItems.count
+            self.itemsLock.unlock()
+            guard count > 0 else {
+                self.showResult(success: false, count: 0)
+                return
             }
-        } onCancel: { [weak self] in
-            self?.dismiss(animated: true) {
-                self?.completeRequest()
-            }
+            let success = self.commitPendingItems()
+            self.showResult(success: success, count: count)
         }
-
-        let hostingController = UIHostingController(rootView: tagView)
-        hostingController.isModalInPresentation = true
-        print("ShareExtension: presenting tag picker")
-        present(hostingController, animated: true) {
-            print("ShareExtension: tag picker presented successfully")
-        }
-    }
-
-    private func applySelectedTags(_ selectedTags: Set<String>) {
-        guard !selectedTags.isEmpty else { return }
-        itemsLock.lock()
-        for i in 0..<pendingItems.count {
-            let newTags = selectedTags.filter { !pendingItems[i].tags.contains($0) }
-            pendingItems[i].tags.append(contentsOf: newTags.sorted())
-        }
-        itemsLock.unlock()
-    }
-
-    private func loadExistingTags() -> [String] {
-        guard let url = StorageConstants.itemsFileURL,
-              let data = try? Data(contentsOf: url),
-              let items = try? JSONDecoder().decode([DataItem].self, from: data) else { return [] }
-        return Array(Set(items.flatMap { $0.tags })).sorted()
     }
 
     // MARK: - Provider handling
 
     private func processProvider(_ provider: NSItemProvider, completion: @escaping () -> Void) {
-        // Check specific media types first to avoid the greedy plainText match.
-        // Many providers (e.g. images shared from Safari) conform to both
-        // public.plain-text and public.image; checking text first would lose the file.
+        // 1. Try specific media types first (image, movie, audio) – they often
+        //    also conform to plainText/URL, so checking them first avoids losing
+        //    the actual file.
         let mediaTypes: [UTType] = [.image, .movie, .audio]
         for utType in mediaTypes {
             if provider.hasItemConformingToTypeIdentifier(utType.identifier) {
-                // Use loadFileRepresentation instead of loadItem so the system
-                // creates a readable temporary copy. loadItem may return URLs
-                // that point into the source app's sandbox (e.g. Photos),
-                // causing FileManager.copyItem to fail silently.
-                _ = provider.loadFileRepresentation(for: utType) { url, _, error in
-                    if let url = url, let dataItem = self.copyFileToContainer(url: url) {
-                        self.addPendingItem(dataItem)
-                        completion()
-                    } else {
-                        // loadFileRepresentation failed – fall back to loadItem which can
-                        // return Data or UIImage representations directly.
-                        if let error = error {
-                            print("ShareExtension: loadFileRepresentation failed for \(utType.identifier) – \(error.localizedDescription), trying loadItem fallback")
-                        }
-                        self.loadItemFallback(provider: provider, typeIdentifier: utType.identifier, completion: completion)
-                    }
-                }
+                loadFile(from: provider, utType: utType, completion: completion)
                 return
             }
         }
 
-        // File URLs (e.g. PDFs, documents shared from Files app)
+        // 2. File URLs (documents, PDFs, etc.)
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-            _ = provider.loadFileRepresentation(for: .fileURL) { url, _, error in
-                if let url = url, let dataItem = self.copyFileToContainer(url: url) {
-                    self.addPendingItem(dataItem)
-                    completion()
-                } else {
-                    if let error = error {
-                        print("ShareExtension: loadFileRepresentation failed for fileURL – \(error.localizedDescription), trying loadItem fallback")
-                    }
-                    self.loadItemFallback(provider: provider, typeIdentifier: UTType.fileURL.identifier, completion: completion)
-                }
-            }
+            loadFile(from: provider, utType: .fileURL, completion: completion)
             return
         }
 
-        // Web URLs
+        // 3. Web URLs
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.url.identifier) { item, _ in
+            provider.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] item, _ in
+                guard let self else { completion(); return }
                 if let url = item as? URL {
-                    if url.isFileURL {
-                        if let dataItem = self.copyFileToContainer(url: url) {
-                            self.addPendingItem(dataItem)
-                        }
+                    if url.isFileURL, let dataItem = self.copyFileToContainer(url: url) {
+                        self.addPendingItem(dataItem)
                     } else {
                         self.addPendingItem(self.makeTextItem(text: url.absoluteString))
                     }
@@ -390,19 +182,15 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             return
         }
 
-        // Plain text before generic data, because plainText conforms to
-        // UTType.data — checking data first would swallow text shares.
+        // 4. Plain text
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
+            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] item, _ in
+                guard let self else { completion(); return }
                 var text: String?
-                if let t = item as? String {
-                    text = t
-                } else if let url = item as? URL {
-                    text = url.absoluteString
-                } else if let data = item as? Data {
-                    text = String(data: data, encoding: .utf8)
-                }
-                if let text = text {
+                if let t = item as? String { text = t }
+                else if let url = item as? URL { text = url.absoluteString }
+                else if let data = item as? Data { text = String(data: data, encoding: .utf8) }
+                if let text {
                     self.addPendingItem(self.makeTextItem(text: text))
                 }
                 completion()
@@ -410,59 +198,52 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             return
         }
 
-        // Generic data / files that didn't match any specific type above
+        // 5. Any other data type
         if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-            _ = provider.loadFileRepresentation(for: .data) { url, _, error in
-                if let url = url, let dataItem = self.copyFileToContainer(url: url) {
-                    self.addPendingItem(dataItem)
-                    completion()
-                } else {
-                    if let error = error {
-                        print("ShareExtension: loadFileRepresentation failed for data – \(error.localizedDescription), trying loadItem fallback")
-                    }
-                    self.loadItemFallback(provider: provider, typeIdentifier: UTType.data.identifier, completion: completion)
-                }
-            }
+            loadFile(from: provider, utType: .data, completion: completion)
             return
         }
 
         completion()
     }
 
-    /// Fallback for when `loadFileRepresentation` fails. Uses the older
-    /// `loadItem(forTypeIdentifier:)` which can return URLs, raw `Data`, or
-    /// `UIImage` objects directly.
-    nonisolated private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
-        let suggestedName = provider.suggestedName
-        provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, loadError in
-            guard let self else {
-                print("ShareExtension: loadItem fallback – view controller deallocated before completion")
+    /// Loads a file representation from the provider. Falls back to loadItem if
+    /// the file representation cannot be produced.
+    private func loadFile(from provider: NSItemProvider, utType: UTType, completion: @escaping () -> Void) {
+        _ = provider.loadFileRepresentation(for: utType) { [weak self] url, _, error in
+            guard let self else { completion(); return }
+            if let url, let dataItem = self.copyFileToContainer(url: url) {
+                self.addPendingItem(dataItem)
                 completion()
-                return
+            } else {
+                // Fallback: loadItem can return URL, Data, or UIImage
+                self.loadItemFallback(provider: provider, typeIdentifier: utType.identifier, completion: completion)
             }
+        }
+    }
+
+    private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
+        let suggestedName = provider.suggestedName
+        provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, _ in
             if let url = item as? URL {
-                if let dataItem = self.copyFileToContainer(url: url) {
-                    self.addPendingItem(dataItem)
+                if let dataItem = self?.copyFileToContainer(url: url) {
+                    self?.addPendingItem(dataItem)
                 }
             } else if let data = item as? Data {
                 let name = suggestedName ?? "file"
                 let mimeType = UTType(typeIdentifier)?.preferredMIMEType ?? "application/octet-stream"
-                if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
-                    self.addPendingItem(dataItem)
+                if let dataItem = self?.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
+                    self?.addPendingItem(dataItem)
                 }
             } else if let image = item as? UIImage {
                 let name = suggestedName ?? "image"
-                if let jpegData = image.jpegData(compressionQuality: 0.9) {
-                    if let dataItem = self.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
-                        self.addPendingItem(dataItem)
-                    }
-                } else if let pngData = image.pngData() {
-                    if let dataItem = self.writeDataToContainer(data: pngData, name: name + ".png", mimeType: "image/png") {
-                        self.addPendingItem(dataItem)
-                    }
+                if let jpegData = image.jpegData(compressionQuality: 0.9),
+                   let dataItem = self?.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
+                    self?.addPendingItem(dataItem)
+                } else if let pngData = image.pngData(),
+                          let dataItem = self?.writeDataToContainer(data: pngData, name: name + ".png", mimeType: "image/png") {
+                    self?.addPendingItem(dataItem)
                 }
-            } else if let loadError = loadError {
-                print("ShareExtension: loadItem fallback also failed for \(typeIdentifier) – \(loadError.localizedDescription)")
             }
             completion()
         }
@@ -470,7 +251,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Item helpers
 
-    nonisolated private func addPendingItem(_ item: DataItem) {
+    private func addPendingItem(_ item: DataItem) {
         var item = item
         if let appTag = sourceAppTag, !item.tags.contains(appTag) {
             item.tags.append(appTag)
@@ -479,27 +260,19 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             item.sourceApp = sourceAppTag
         }
         itemsLock.lock()
-        guard !pendingItemsFrozen else {
-            itemsLock.unlock()
-            print("ShareExtension: addPendingItem – items are frozen, ignoring late-arriving item '\(item.title)'")
-            return
-        }
         pendingItems.append(item)
         itemsLock.unlock()
     }
 
-    nonisolated private func makeTextItem(text: String) -> DataItem {
+    private func makeTextItem(text: String) -> DataItem {
         let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
         return DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text)
     }
 
     // MARK: - File operations
 
-    nonisolated private func copyFileToContainer(url: URL) -> DataItem? {
-        guard let containerURL = StorageConstants.appGroupURL else {
-            print("ShareExtension: appGroupURL is nil – cannot copy file to container")
-            return nil
-        }
+    private func copyFileToContainer(url: URL) -> DataItem? {
+        guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
@@ -516,7 +289,6 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                 try FileManager.default.copyItem(at: url, to: dest)
             }
         } catch {
-            print("ShareExtension: copyItem failed from \(url.lastPathComponent) to \(uniqueName) – \(error.localizedDescription)")
             return nil
         }
 
@@ -525,7 +297,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         return DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    nonisolated private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
+    private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
         guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
@@ -544,59 +316,36 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         return DataItem(type: type, title: name, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    // MARK: - Persistence (single atomic save of all collected items)
+    // MARK: - Persistence
 
     private func commitPendingItems() -> Bool {
-        guard let containerURL = StorageConstants.appGroupURL else {
-            print("ShareExtension: appGroupURL is nil – cannot commit items")
-            return false
-        }
+        guard let containerURL = StorageConstants.appGroupURL else { return false }
         let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
 
         var existing: [DataItem] = []
-        let fileManager = FileManager.default
-
-        // Use NSFileCoordinator so the main app process sees the update
         let coordinator = NSFileCoordinator()
         var coordError: NSError?
         var writeSuccess = false
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
-            if fileManager.fileExists(atPath: coordinatedURL.path),
+            if FileManager.default.fileExists(atPath: coordinatedURL.path),
                let data = try? Data(contentsOf: coordinatedURL),
                let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
                 existing = decoded
             }
-            // If the file is missing or unreadable the write still proceeds
-            // with an empty baseline so the new items are never lost.
 
             self.itemsLock.lock()
-            let newItems = self.pendingItems.map { item -> DataItem in
-                var updated = item
-                updated.location = self.currentLocationString
-                return updated
-            }
+            let newItems = self.pendingItems
             self.itemsLock.unlock()
-
             guard !newItems.isEmpty else { return }
 
             existing.insert(contentsOf: newItems, at: 0)
 
-            guard let encoded = try? JSONEncoder().encode(existing) else {
-                print("ShareExtension: failed to encode \(existing.count) items")
-                return
-            }
+            guard let encoded = try? JSONEncoder().encode(existing) else { return }
             do {
                 try encoded.write(to: coordinatedURL, options: .atomic)
                 writeSuccess = true
-            } catch {
-                print("ShareExtension: failed to write items.json – \(error.localizedDescription)")
-                return
-            }
-        }
-
-        if let coordError = coordError {
-            print("ShareExtension: file coordination error – \(coordError.localizedDescription)")
+            } catch { return }
         }
 
         guard coordError == nil, writeSuccess else { return false }
@@ -614,11 +363,11 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Helpers
 
+    // `_hostBundleIdentifier` is an undocumented/private KVC key on the extension context.
+    // We use it here because there is no public API to identify the host app for a share
+    // extension. If this lookup stops working in a future OS release, fall back to `nil`
+    // so the UI simply omits the source-app label instead of failing.
     private func resolveSourceAppName() -> String? {
-        // `_hostBundleIdentifier` is a private KVC key on NSExtensionContext that returns
-        // the bundle ID of the host app. There is no public API equivalent on iOS.
-        // This is a widely-used pattern in share extensions and has not caused App Store
-        // rejections in practice, but the behaviour could change in future OS versions.
         guard let bundleID = extensionContext?.value(forKeyPath: "_hostBundleIdentifier") as? String else {
             return nil
         }
@@ -651,11 +400,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
             "com.slack.slack": "Slack",
         ]
 
-        if let name = knownApps[bundleID] {
-            return name
-        }
+        if let name = knownApps[bundleID] { return name }
 
-        // Fallback: derive a name from the bundle ID components
         let components = bundleID.split(separator: ".")
         for component in components.reversed() {
             let token = String(component)
@@ -666,14 +412,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         return nil
     }
 
-    nonisolated private func mimeTypeForExtension(_ ext: String) -> String {
-        if let utType = UTType(filenameExtension: ext) {
-            return utType.preferredMIMEType ?? "application/octet-stream"
-        }
-        return "application/octet-stream"
-    }
-
-    private func completeRequest() {
-        extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+    private func mimeTypeForExtension(_ ext: String) -> String {
+        UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 }
