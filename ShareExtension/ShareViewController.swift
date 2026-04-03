@@ -19,6 +19,7 @@ class ShareViewController: UIViewController {
     private let iconView = UIImageView()
     private let statusLabel = UILabel()
     private var spinner: UIActivityIndicatorView?
+    private let hudDismissDelay: TimeInterval = 1.2
 
     // MARK: - Lifecycle
 
@@ -103,7 +104,7 @@ class ShareViewController: UIViewController {
             statusLabel.text = "Error"
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + hudDismissDelay) {
             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
         }
     }
@@ -164,13 +165,12 @@ class ShareViewController: UIViewController {
         // 3. Web URLs
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.url.identifier) { [weak self] item, _ in
+                guard let self else { completion(); return }
                 if let url = item as? URL {
-                    if url.isFileURL, let dataItem = self?.copyFileToContainer(url: url) {
-                        self?.addPendingItem(dataItem)
+                    if url.isFileURL, let dataItem = self.copyFileToContainer(url: url) {
+                        self.addPendingItem(dataItem)
                     } else {
-                        if let textItem = self?.makeTextItem(text: url.absoluteString) {
-                            self?.addPendingItem(textItem)
-                        }
+                        self.addPendingItem(self.makeTextItem(text: url.absoluteString))
                     }
                 }
                 completion()
@@ -181,12 +181,13 @@ class ShareViewController: UIViewController {
         // 4. Plain text
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] item, _ in
+                guard let self else { completion(); return }
                 var text: String?
                 if let t = item as? String { text = t }
                 else if let url = item as? URL { text = url.absoluteString }
                 else if let data = item as? Data { text = String(data: data, encoding: .utf8) }
-                if let text, let textItem = self?.makeTextItem(text: text) {
-                    self?.addPendingItem(textItem)
+                if let text {
+                    self.addPendingItem(self.makeTextItem(text: text))
                 }
                 completion()
             }
