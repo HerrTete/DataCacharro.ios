@@ -183,16 +183,14 @@ class ShareViewController: UIViewController {
             guard let self else { return }
             self.hudContainer.isHidden = false
 
+            self.itemsLock.lock()
             if !tags.isEmpty {
-                self.itemsLock.lock()
                 for i in self.pendingItems.indices {
-                    let newTags = tags.filter { !self.pendingItems[i].tags.contains($0) }
+                    let existing = Set(self.pendingItems[i].tags)
+                    let newTags = tags.subtracting(existing)
                     self.pendingItems[i].tags.append(contentsOf: newTags)
                 }
-                self.itemsLock.unlock()
             }
-
-            self.itemsLock.lock()
             let count = self.pendingItems.count
             self.itemsLock.unlock()
 
