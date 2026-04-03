@@ -5,9 +5,9 @@ class ShareViewController: UIViewController {
 
     // MARK: - Pending items
 
-    private var pendingItems: [DataItem] = []
-    private let itemsLock = NSLock()
-    private var sourceAppTag: String?
+    nonisolated(unsafe) private var pendingItems: [DataItem] = []
+    nonisolated(unsafe) private let itemsLock = NSLock()
+    nonisolated(unsafe) private var sourceAppTag: String?
 
     // Generic bundle ID segments that do not carry a meaningful app name.
     private static let bundleIDSkipTokens: Set<String> = [
@@ -222,7 +222,7 @@ class ShareViewController: UIViewController {
         }
     }
 
-    private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
+    nonisolated private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
         let suggestedName = provider.suggestedName
         provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, _ in
             if let url = item as? URL {
@@ -251,7 +251,7 @@ class ShareViewController: UIViewController {
 
     // MARK: - Item helpers
 
-    private func addPendingItem(_ item: DataItem) {
+    nonisolated private func addPendingItem(_ item: DataItem) {
         var item = item
         if let appTag = sourceAppTag, !item.tags.contains(appTag) {
             item.tags.append(appTag)
@@ -271,7 +271,7 @@ class ShareViewController: UIViewController {
 
     // MARK: - File operations
 
-    private func copyFileToContainer(url: URL) -> DataItem? {
+    nonisolated private func copyFileToContainer(url: URL) -> DataItem? {
         guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
@@ -297,7 +297,7 @@ class ShareViewController: UIViewController {
         return DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
+    nonisolated private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
         guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
@@ -418,7 +418,7 @@ class ShareViewController: UIViewController {
         return nil
     }
 
-    private func mimeTypeForExtension(_ ext: String) -> String {
+    nonisolated private func mimeTypeForExtension(_ ext: String) -> String {
         UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 }
