@@ -4,10 +4,15 @@ import AVFoundation
 struct ItemListView: View {
     @EnvironmentObject var storage: StorageService
     var filterTag: String? = nil
+    @Binding var isSelecting: Bool
     @State private var selectedItem: DataItem?
     @State private var tagItem: DataItem?
-    @State private var isSelecting = false
     @State private var selectedIDs: Set<String> = []
+
+    init(isSelecting: Binding<Bool>, filterTag: String? = nil) {
+        self._isSelecting = isSelecting
+        self.filterTag = filterTag
+    }
 
     private var showingSelectionBar: Bool {
         isSelecting && !selectedIDs.isEmpty

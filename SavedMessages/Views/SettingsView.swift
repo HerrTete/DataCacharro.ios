@@ -18,6 +18,8 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("App")
+                    .accessibilityIdentifier("appSectionHeader")
+                    .accessibilityAddTraits(.isStaticText)
             }
         }
     }

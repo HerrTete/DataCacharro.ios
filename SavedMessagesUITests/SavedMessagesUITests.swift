@@ -330,7 +330,7 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Version"].exists, "Version label should exist")
         XCTAssertTrue(app.staticTexts["Build"].exists, "Build label should exist")
-        XCTAssertTrue(app.staticTexts["App"].exists, "App section header should exist")
+        XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
     }
 
     func testSettingsNavigationBarTitle() {
@@ -355,7 +355,7 @@ final class SavedMessagesUITests: XCTestCase {
     func testSettingsShowsAppSectionHeader() {
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["App"].exists, "App section header should exist")
+        XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
     }
 
     // MARK: - Tags View
