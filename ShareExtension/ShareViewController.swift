@@ -6,6 +6,7 @@ class ShareViewController: UIViewController {
     // MARK: - Pending items
 
     private var pendingItems: [DataItem] = []
+    private let itemsLock = NSLock()
     private var sourceAppTag: String?
 
     // Generic bundle ID segments that do not carry a meaningful app name.
@@ -133,12 +134,15 @@ class ShareViewController: UIViewController {
 
         group.notify(queue: .main) { [weak self] in
             guard let self else { return }
-            guard !self.pendingItems.isEmpty else {
+            self.itemsLock.lock()
+            let count = self.pendingItems.count
+            self.itemsLock.unlock()
+            guard count > 0 else {
                 self.showResult(success: false, count: 0)
                 return
             }
             let success = self.commitPendingItems()
-            self.showResult(success: success, count: self.pendingItems.count)
+            self.showResult(success: success, count: count)
         }
     }
 
@@ -207,12 +211,13 @@ class ShareViewController: UIViewController {
     /// the file representation cannot be produced.
     private func loadFile(from provider: NSItemProvider, utType: UTType, completion: @escaping () -> Void) {
         _ = provider.loadFileRepresentation(for: utType) { [weak self] url, _, error in
-            if let url, let dataItem = self?.copyFileToContainer(url: url) {
-                self?.addPendingItem(dataItem)
+            guard let self else { completion(); return }
+            if let url, let dataItem = self.copyFileToContainer(url: url) {
+                self.addPendingItem(dataItem)
                 completion()
             } else {
                 // Fallback: loadItem can return URL, Data, or UIImage
-                self?.loadItemFallback(provider: provider, typeIdentifier: utType.identifier, completion: completion)
+                self.loadItemFallback(provider: provider, typeIdentifier: utType.identifier, completion: completion)
             }
         }
     }
@@ -254,7 +259,9 @@ class ShareViewController: UIViewController {
         if item.sourceApp == nil {
             item.sourceApp = sourceAppTag
         }
+        itemsLock.lock()
         pendingItems.append(item)
+        itemsLock.unlock()
     }
 
     private func makeTextItem(text: String) -> DataItem {
@@ -327,7 +334,9 @@ class ShareViewController: UIViewController {
                 existing = decoded
             }
 
+            self.itemsLock.lock()
             let newItems = self.pendingItems
+            self.itemsLock.unlock()
             guard !newItems.isEmpty else { return }
 
             existing.insert(contentsOf: newItems, at: 0)
@@ -354,6 +363,10 @@ class ShareViewController: UIViewController {
 
     // MARK: - Helpers
 
+    // `_hostBundleIdentifier` is an undocumented/private KVC key on the extension context.
+    // We use it here because there is no public API to identify the host app for a share
+    // extension. If this lookup stops working in a future OS release, fall back to `nil`
+    // so the UI simply omits the source-app label instead of failing.
     private func resolveSourceAppName() -> String? {
         guard let bundleID = extensionContext?.value(forKeyPath: "_hostBundleIdentifier") as? String else {
             return nil

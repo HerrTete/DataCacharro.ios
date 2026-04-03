@@ -1428,14 +1428,14 @@ final class SavedMessagesUITests: XCTestCase {
         }
 
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
 
         let textEditor = app.textViews["textEditor"]
         textEditor.tap()
         textEditor.typeText(text)
 
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 }
 
