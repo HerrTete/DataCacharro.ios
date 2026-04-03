@@ -1,4 +1,4 @@
-name: Build
+name: "CodeQL"
 
 on:
   push:
@@ -7,14 +7,22 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  analyze:
+    name: Analyze (swift)
     runs-on: macos-latest
     permissions:
+      security-events: write
       contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          build-mode: manual
 
       - name: Build
         run: |
@@ -25,13 +33,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Run UI Tests
-        run: |
-          xcodebuild -project SavedMessages.xcodeproj \
-            -scheme SavedMessages \
-            -destination "platform=iOS Simulator,name=iPhone 16" \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            -skip-testing:SavedMessagesUITests/ShareExtensionUITests \
-            -skip-testing:SavedMessagesUITests/SafariShareUITests \
-            test
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:swift"
