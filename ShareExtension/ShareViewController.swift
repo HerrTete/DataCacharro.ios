@@ -368,7 +368,13 @@ class ShareViewController: UIViewController {
     // extension. If this lookup stops working in a future OS release, fall back to `nil`
     // so the UI simply omits the source-app label instead of failing.
     private func resolveSourceAppName() -> String? {
-        guard let bundleID = extensionContext?.value(forKeyPath: "_hostBundleIdentifier") as? String else {
+        let key = "_hostBundleIdentifier"
+        let selector = NSSelectorFromString(key)
+
+        guard let context = extensionContext,
+              context.responds(to: selector),
+              let bundleID = context.value(forKeyPath: key) as? String,
+              !bundleID.isEmpty else {
             return nil
         }
 
