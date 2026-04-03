@@ -5,9 +5,12 @@ class ShareViewController: UIViewController {
 
     private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
+    private var didStartProcessing = false
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        guard !didStartProcessing else { return }
+        didStartProcessing = true
         view.backgroundColor = .clear
         processSharedItems()
     }
@@ -131,8 +134,12 @@ class ShareViewController: UIViewController {
         let dest = filesDir.appendingPathComponent(uniqueName)
 
         do {
-            _ = url.startAccessingSecurityScopedResource()
-            defer { url.stopAccessingSecurityScopedResource() }
+            let didStartAccessing = url.startAccessingSecurityScopedResource()
+            defer {
+                if didStartAccessing {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
             try FileManager.default.copyItem(at: url, to: dest)
         } catch {
             return nil
@@ -152,6 +159,7 @@ class ShareViewController: UIViewController {
 
         let coordinator = NSFileCoordinator()
         var coordError: NSError?
+        var writeSuccess = false
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordURL in
             var existing: [DataItem] = []
@@ -161,9 +169,14 @@ class ShareViewController: UIViewController {
             }
             existing.insert(contentsOf: items, at: 0)
             if let encoded = try? JSONEncoder().encode(existing) {
-                try? encoded.write(to: coordURL, options: .atomic)
+                do {
+                    try encoded.write(to: coordURL, options: .atomic)
+                    writeSuccess = true
+                } catch { }
             }
         }
+
+        guard coordError == nil, writeSuccess else { return }
 
         let center = CFNotificationCenterGetDarwinNotifyCenter()
         let name = CFNotificationName(StorageConstants.itemsChangedNotification as CFString)
