@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TagsView: View {
     @EnvironmentObject var storage: StorageService
+    @State private var tagListSelecting = false
 
     private var tagsWithCounts: [(tag: String, count: Int)] {
         let counts = Dictionary(grouping: storage.items.flatMap { $0.tags }, by: { $0 })
@@ -15,7 +16,7 @@ struct TagsView: View {
         List {
             ForEach(tagsWithCounts, id: \.tag) { entry in
                 NavigationLink {
-                    ItemListView(filterTag: entry.tag)
+                    ItemListView(isSelecting: $tagListSelecting, filterTag: entry.tag)
                         .navigationTitle(entry.tag)
                 } label: {
                     HStack {
