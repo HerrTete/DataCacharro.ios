@@ -6,30 +6,33 @@ struct ContentView: View {
     @State private var showingAddText = false
     @State private var showingAddAudio = false
     @State private var showingAddPhotoVideo = false
+    @State private var isSelecting = false
 
     var body: some View {
         TabView {
             NavigationStack {
-                ItemListView()
+                ItemListView(isSelecting: $isSelecting)
                     .navigationTitle("SavedMessages")
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { showingAddAudio = true }) {
-                                Image(systemName: "mic.badge.plus")
+                        if !isSelecting {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: { showingAddAudio = true }) {
+                                    Image(systemName: "mic.badge.plus")
+                                }
+                                .accessibilityIdentifier("addAudioButton")
                             }
-                            .accessibilityIdentifier("addAudioButton")
-                        }
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { showingAddPhotoVideo = true }) {
-                                Image(systemName: "photo.badge.plus")
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: { showingAddPhotoVideo = true }) {
+                                    Image(systemName: "photo.badge.plus")
+                                }
+                                .accessibilityIdentifier("addPhotoVideoButton")
                             }
-                            .accessibilityIdentifier("addPhotoVideoButton")
-                        }
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { showingAddText = true }) {
-                                Image(systemName: "text.badge.plus")
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: { showingAddText = true }) {
+                                    Image(systemName: "text.badge.plus")
+                                }
+                                .accessibilityIdentifier("addTextButton")
                             }
-                            .accessibilityIdentifier("addTextButton")
                         }
                     }
             }
