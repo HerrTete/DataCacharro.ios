@@ -43,7 +43,7 @@ struct ShareTagPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onCancel() }
+                    Button("Skip") { onCancel() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {

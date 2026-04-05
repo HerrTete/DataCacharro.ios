@@ -1,4 +1,5 @@
 import UIKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 class ShareViewController: UIViewController {
@@ -141,6 +142,58 @@ class ShareViewController: UIViewController {
                 self.showResult(success: false, count: 0)
                 return
             }
+            self.presentTagPicker()
+        }
+    }
+
+    // MARK: - Tag picker
+
+    private func loadExistingTags() -> [String] {
+        guard let containerURL = StorageConstants.appGroupURL else { return [] }
+        let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
+        guard FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let items = try? JSONDecoder().decode([DataItem].self, from: data) else {
+            return []
+        }
+        return Array(Set(items.flatMap { $0.tags })).sorted()
+    }
+
+    private func presentTagPicker() {
+        hudContainer.isHidden = true
+
+        let existingTags = loadExistingTags()
+        let picker = ShareTagPickerView(
+            existingTags: existingTags,
+            onSave: { [weak self] selectedTags in
+                self?.finishWithTags(selectedTags)
+            },
+            onCancel: { [weak self] in
+                self?.finishWithTags([])
+            }
+        )
+        let hostingController = UIHostingController(rootView: picker)
+        hostingController.modalPresentationStyle = .formSheet
+        hostingController.isModalInPresentation = true
+        present(hostingController, animated: true)
+    }
+
+    private func finishWithTags(_ tags: Set<String>) {
+        dismiss(animated: true) { [weak self] in
+            guard let self else { return }
+            self.hudContainer.isHidden = false
+
+            self.itemsLock.lock()
+            if !tags.isEmpty {
+                for i in self.pendingItems.indices {
+                    let existing = Set(self.pendingItems[i].tags)
+                    let newTags = tags.subtracting(existing)
+                    self.pendingItems[i].tags.append(contentsOf: newTags)
+                }
+            }
+            let count = self.pendingItems.count
+            self.itemsLock.unlock()
+
             let success = self.commitPendingItems()
             self.showResult(success: success, count: count)
         }
