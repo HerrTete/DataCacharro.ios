@@ -251,18 +251,18 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
         app.buttons["editButton"].tap()
         XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
-        let nameField2 = app.textFields["nameTextField"]
-        nameField2.tap()
-        nameField2.clearAndTypeText("First rename")
+        let firstRenameField = app.textFields["nameTextField"]
+        firstRenameField.tap()
+        firstRenameField.clearAndTypeText("First rename")
         app.buttons["saveButton"].tap()
         XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
 
         // Second rename → should overwrite first
         app.buttons["editButton"].tap()
         XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
-        let nameField3 = app.textFields["nameTextField"]
-        nameField3.tap()
-        nameField3.clearAndTypeText("Second rename")
+        let secondRenameField = app.textFields["nameTextField"]
+        secondRenameField.tap()
+        secondRenameField.clearAndTypeText("Second rename")
 
         // Add a tag so we can test removal
         let tagInput = app.textFields["tagInputField"]
@@ -275,9 +275,9 @@ final class SavedMessagesUITests: XCTestCase {
             app.keyboards.buttons["Return"].tap()
         }
 
-        // Verify tag appears and remove it via X button
+        // Verify tag appears and remove it via remove button
         XCTAssertTrue(app.staticTexts["RemoveMe"].waitForExistence(timeout: 2), "Added tag should appear")
-        let removeButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'xmark'")).firstMatch
+        let removeButton = app.buttons["removeTag_RemoveMe"]
         if removeButton.waitForExistence(timeout: 2) {
             removeButton.tap()
             XCTAssertTrue(app.staticTexts["RemoveMe"].waitForNonExistence(timeout: 2), "Removed tag should disappear")
