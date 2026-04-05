@@ -5,6 +5,12 @@ struct SavedMessagesApp: App {
     @StateObject private var storage = StorageService.shared
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        if CommandLine.arguments.contains("--uitesting") {
+            UIView.setAnimationsEnabled(false)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
