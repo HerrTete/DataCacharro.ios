@@ -187,7 +187,8 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 2), "URL tag should exist")
 
         // Verify item counts are displayed next to tags
-        XCTAssertTrue(app.staticTexts["1"].exists, "Tag item count should be displayed")
+        XCTAssertTrue(app.staticTexts["tagCount_Text"].exists, "Text tag item count should be displayed")
+        XCTAssertTrue(app.staticTexts["tagCount_URL"].exists, "URL tag item count should be displayed")
 
         // Navigate to Text tag filtered list
         app.staticTexts["Text"].tap()

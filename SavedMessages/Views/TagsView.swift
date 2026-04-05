@@ -25,6 +25,7 @@ struct TagsView: View {
                         Text("\(entry.count)")
                             .foregroundStyle(.secondary)
                             .font(.caption)
+                            .accessibilityIdentifier("tagCount_\(entry.tag)")
                     }
                 }
             }
