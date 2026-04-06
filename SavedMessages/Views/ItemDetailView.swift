@@ -134,6 +134,7 @@ struct EditItemView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("removeTag_\(tag)")
                             }
                         }
                     }
