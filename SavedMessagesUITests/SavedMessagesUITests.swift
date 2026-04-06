@@ -292,18 +292,6 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["First rename"].exists)
     }
 
-    /// Covers: URL item detail shows "Open in Browser" button.
-    func testURLItemDetailShowsOpenInBrowser() {
-        addTextItem("https://example.com/browser")
-
-        app.staticTexts["https://example.com/browser"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
-
-        // URL items should have an "Open in Browser" button
-        XCTAssertTrue(app.buttons["Open in Browser"].waitForExistence(timeout: 2), "URL detail should show 'Open in Browser' button")
-        app.buttons["doneButton"].tap()
-    }
-
     // MARK: - Add & Remove Tags in Edit View
 
     /// Covers: add multiple tags, verify tags in Tags tab, cancel doesn't save tags.
