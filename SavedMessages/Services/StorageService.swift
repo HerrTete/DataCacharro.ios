@@ -81,36 +81,28 @@ class StorageService: ObservableObject {
     }
 
     func saveItems() {
+        saveItemsLocally()
+        syncToiCloud()
+    }
+
+    /// Writes the current items array to disk using file coordination,
+    /// without triggering an iCloud sync. Used internally to avoid
+    /// re-entrant sync cycles.
+    private func saveItemsLocally() {
         guard let url = StorageConstants.itemsFileURL else { return }
         guard let data = try? JSONEncoder().encode(items) else { return }
 
         // Use NSFileCoordinator so the share extension sees the latest state
         let coordinator = NSFileCoordinator()
         var coordError: NSError?
-        var writeError: Error?
-        var didWrite = false
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
-            do {
-                try data.write(to: coordinatedURL, options: .atomic)
-                didWrite = true
-            } catch {
-                writeError = error
-            }
+            try? data.write(to: coordinatedURL, options: .atomic)
         }
 
         if let coordError = coordError {
-            print("StorageService.saveItems coordination error: \(coordError)")
+            print("StorageService.saveItemsLocally coordination error: \(coordError)")
         }
-
-        if let writeError = writeError {
-            print("StorageService.saveItems write error: \(writeError)")
-        }
-
-        guard coordError == nil, didWrite else {
-            return
-        }
-        syncToiCloud()
     }
 
     func addTextItem(text: String, sourceApp: String? = nil, location: String? = nil) {
@@ -321,11 +313,37 @@ class StorageService: ObservableObject {
             // Download files for items from iCloud that are missing locally
             self.downloadMissingFiles(from: iCloudURL, for: mergedItems)
 
+            // Upload merged result to iCloud before updating local state
+            // so that other devices see the merged data as soon as possible.
+            if let data = try? JSONEncoder().encode(mergedItems) {
+                let url = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
+                try? data.write(to: url, options: .atomic)
+            }
+            if let data = try? JSONEncoder().encode(mergedDeletedIDs) {
+                let url = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+                try? data.write(to: url, options: .atomic)
+            }
+
+            // Upload local files to iCloud
+            if let localFilesURL = StorageConstants.filesURL {
+                let iCloudFilesURL = iCloudURL.appendingPathComponent(StorageConstants.filesDirectoryName)
+                try? FileManager.default.createDirectory(at: iCloudFilesURL, withIntermediateDirectories: true)
+                if let files = try? FileManager.default.contentsOfDirectory(atPath: localFilesURL.path) {
+                    for file in files {
+                        let src = localFilesURL.appendingPathComponent(file)
+                        let dst = iCloudFilesURL.appendingPathComponent(file)
+                        if !FileManager.default.fileExists(atPath: dst.path) {
+                            try? FileManager.default.copyItem(at: src, to: dst)
+                        }
+                    }
+                }
+            }
+
             DispatchQueue.main.async {
                 self.deletedIDs = mergedDeletedIDs
                 self.items = mergedItems
                 self.saveDeletedIDs()
-                self.saveItems()
+                self.saveItemsLocally()
 
                 // Delay resetting isSyncing to prevent re-entrant sync
                 // triggered by NSMetadataQuery detecting our own upload
@@ -380,21 +398,64 @@ class StorageService: ObservableObject {
     }
 
     private func syncToiCloud() {
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
             guard let iCloudURL = self.iCloudURL else { return }
             try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true)
-            if let localItemsURL = StorageConstants.itemsFileURL {
-                let iCloudItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
-                try? FileManager.default.removeItem(at: iCloudItemsURL)
-                try? FileManager.default.copyItem(at: localItemsURL, to: iCloudItemsURL)
+
+            // Load local items from disk
+            let localItems: [DataItem]
+            if let url = StorageConstants.itemsFileURL,
+               let data = try? Data(contentsOf: url),
+               let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+                localItems = decoded
+            } else {
+                localItems = []
             }
-            // Upload deleted IDs
-            if let localDeletedIDsURL = StorageConstants.deletedIDsFileURL,
-               FileManager.default.fileExists(atPath: localDeletedIDsURL.path) {
-                let iCloudDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
-                try? FileManager.default.removeItem(at: iCloudDeletedIDsURL)
-                try? FileManager.default.copyItem(at: localDeletedIDsURL, to: iCloudDeletedIDsURL)
+
+            let localDeletedIDs: Set<String>
+            if let url = StorageConstants.deletedIDsFileURL,
+               let data = try? Data(contentsOf: url),
+               let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                localDeletedIDs = ids
+            } else {
+                localDeletedIDs = []
             }
+
+            // Load remote items from iCloud
+            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
+            let remoteItems: [DataItem]
+            if let data = try? Data(contentsOf: remoteItemsURL),
+               let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+                remoteItems = decoded
+            } else {
+                remoteItems = []
+            }
+
+            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+            let remoteDeletedIDs: Set<String>
+            if let data = try? Data(contentsOf: remoteDeletedIDsURL),
+               let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                remoteDeletedIDs = ids
+            } else {
+                remoteDeletedIDs = []
+            }
+
+            // Merge local + remote using LWW-Element-Set strategy
+            let mergedDeletedIDs = localDeletedIDs.union(remoteDeletedIDs)
+            let mergedItems = StorageService.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
+
+            // Write merged items to iCloud
+            if let data = try? JSONEncoder().encode(mergedItems) {
+                try? data.write(to: remoteItemsURL, options: .atomic)
+            }
+
+            // Write merged deletedIDs to iCloud
+            if let data = try? JSONEncoder().encode(mergedDeletedIDs) {
+                try? data.write(to: remoteDeletedIDsURL, options: .atomic)
+            }
+
+            // Upload local files to iCloud
             if let localFilesURL = StorageConstants.filesURL {
                 let iCloudFilesURL = iCloudURL.appendingPathComponent(StorageConstants.filesDirectoryName)
                 try? FileManager.default.createDirectory(at: iCloudFilesURL, withIntermediateDirectories: true)
