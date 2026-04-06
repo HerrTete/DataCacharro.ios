@@ -406,7 +406,7 @@ final class SyncMergeTests: XCTestCase {
     // MARK: - Large Item Sets
 
     func testMergeWithManyItems() {
-        let local  = (0..<500).map { textItem(id: "item-\($0)", title: "L\($0)", createdAt: TimeInterval($0)) }
+        let local = (0..<500).map { textItem(id: "item-\($0)", title: "L\($0)", createdAt: TimeInterval($0)) }
         let remote = (250..<750).map { textItem(id: "item-\($0)", title: "R\($0)", createdAt: TimeInterval($0), modifiedAt: TimeInterval($0 + 1000)) }
 
         let result = StorageService.mergeItems(local: local, remote: remote, deletedIDs: [])

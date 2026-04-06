@@ -97,7 +97,11 @@ class StorageService: ObservableObject {
         var coordError: NSError?
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
-            try? data.write(to: coordinatedURL, options: .atomic)
+            do {
+                try data.write(to: coordinatedURL, options: .atomic)
+            } catch {
+                print("StorageService.saveItemsLocally write error: \(error)")
+            }
         }
 
         if let coordError = coordError {
