@@ -44,7 +44,11 @@ struct DataItem: Identifiable, Codable {
     /// `effectiveModifiedAt`, ensuring the merge result is the same
     /// regardless of which side is "local" vs "remote".
     var mergeFingerprint: String {
-        [
+        // Use ASCII Unit Separator (U+001F) as delimiter — it cannot appear
+        // in user-visible fields, preventing accidental collisions between
+        // different field combinations (e.g. title="a|b" vs title="a", customName="b").
+        let separator = "\u{1F}"
+        return [
             title,
             customName ?? "",
             tags.joined(separator: ","),
@@ -54,7 +58,7 @@ struct DataItem: Identifiable, Codable {
             sourceApp ?? "",
             location ?? "",
             type.rawValue
-        ].joined(separator: "\u{1F}")
+        ].joined(separator: separator)
     }
 
     var displayName: String { customName.flatMap { $0.isEmpty ? nil : $0 } ?? title }
