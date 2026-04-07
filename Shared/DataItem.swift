@@ -39,6 +39,24 @@ struct DataItem: Identifiable, Codable {
 
     var effectiveModifiedAt: TimeInterval { modifiedAt ?? createdAt }
 
+    /// Deterministic fingerprint derived from all mutable content fields.
+    /// Used as a tie-breaker when two versions of the same item have equal
+    /// `effectiveModifiedAt`, ensuring the merge result is the same
+    /// regardless of which side is "local" vs "remote".
+    var mergeFingerprint: String {
+        [
+            title,
+            customName ?? "",
+            tags.joined(separator: ","),
+            textContent ?? "",
+            fileName ?? "",
+            mimeType ?? "",
+            sourceApp ?? "",
+            location ?? "",
+            type.rawValue
+        ].joined(separator: "\u{1F}")
+    }
+
     var displayName: String { customName.flatMap { $0.isEmpty ? nil : $0 } ?? title }
 
     var createdDate: Date { Date(timeIntervalSince1970: createdAt) }
