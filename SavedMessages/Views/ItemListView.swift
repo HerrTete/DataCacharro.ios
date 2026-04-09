@@ -81,6 +81,9 @@ struct ItemListView: View {
                     }
             }
         }
+        .refreshable {
+            await storage.syncFromiCloudAsync()
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 if isSelecting {

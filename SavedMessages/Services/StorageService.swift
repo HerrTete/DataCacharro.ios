@@ -258,15 +258,36 @@ class StorageService: ObservableObject {
 
     // MARK: - Bidirectional Sync
 
+    func syncFromiCloudAsync() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            syncFromiCloud {
+                continuation.resume()
+            }
+        }
+    }
+
     func syncFromiCloud() {
-        guard !isSyncing else { return }
+        syncFromiCloud(completion: nil)
+    }
+
+    private func syncFromiCloud(completion: (() -> Void)?) {
+        guard !isSyncing else {
+            completion?()
+            return
+        }
         isSyncing = true
 
         DispatchQueue.global(qos: .background).async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self else {
+                completion?()
+                return
+            }
 
             guard let iCloudURL = self.iCloudURL else {
-                DispatchQueue.main.async { self.isSyncing = false }
+                DispatchQueue.main.async {
+                    self.isSyncing = false
+                    completion?()
+                }
                 return
             }
 
@@ -348,6 +369,7 @@ class StorageService: ObservableObject {
                 self.items = mergedItems
                 self.saveDeletedIDs()
                 self.saveItemsLocally()
+                completion?()
 
                 // Delay resetting isSyncing to prevent re-entrant sync
                 // triggered by NSMetadataQuery detecting our own upload
