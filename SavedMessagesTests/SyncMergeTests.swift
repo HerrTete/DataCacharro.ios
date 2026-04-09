@@ -71,16 +71,19 @@ final class SyncMergeTests: XCTestCase {
         XCTAssertEqual(result[0].title, "Newer")
     }
 
-    // When both sides have the same effectiveModifiedAt, the local item is
-    // preserved because local items are inserted first into the merge dictionary
-    // and remote items only overwrite when strictly newer. This avoids
-    // unnecessary overwrites and keeps the merge deterministic.
-    func testEqualTimestampsPreservesLocalItem() {
+    // When both sides have the same effectiveModifiedAt, a deterministic
+    // fingerprint comparison decides the winner so that both devices
+    // converge to the same result regardless of which side is "local".
+    func testEqualTimestampsUseDeterministicTieBreaker() {
         let local = [textItem(id: "x", title: "Local")]
         let remote = [textItem(id: "x", title: "Remote")]
-        let result = StorageService.mergeItems(local: local, remote: remote, deletedIDs: [])
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].title, "Local")
+        let resultLR = StorageService.mergeItems(local: local, remote: remote, deletedIDs: [])
+        let resultRL = StorageService.mergeItems(local: remote, remote: local, deletedIDs: [])
+
+        XCTAssertEqual(resultLR.count, 1)
+        XCTAssertEqual(resultRL.count, 1)
+        // Both merges must pick the same winner
+        XCTAssertEqual(resultLR[0].title, resultRL[0].title)
     }
 
     // MARK: - Deleted IDs (Tombstones)
@@ -599,5 +602,378 @@ final class SyncMergeTests: XCTestCase {
         // ubiquity container. The async wrapper must still resume.
         await storage.syncFromiCloudAsync()
         // Reaching this line means the continuation resumed – test passes.
+    }
+
+    // MARK: - Cross-Device Convergence (Equal Timestamps)
+
+    /// When two devices independently edit the same item at the exact same
+    /// timestamp, both must converge to the same winner after syncing.
+    func testEqualTimestampsMergeIsCommutative() {
+        let deviceA = textItem(id: "x", title: "Edit-A", tags: ["Text", "A"], modifiedAt: 500)
+        let deviceB = textItem(id: "x", title: "Edit-B", tags: ["Text", "B"], modifiedAt: 500)
+
+        let resultAB = StorageService.mergeItems(local: [deviceA], remote: [deviceB], deletedIDs: [])
+        let resultBA = StorageService.mergeItems(local: [deviceB], remote: [deviceA], deletedIDs: [])
+
+        XCTAssertEqual(resultAB.count, 1)
+        XCTAssertEqual(resultBA.count, 1)
+        // Both merges must pick the same winner
+        XCTAssertEqual(resultAB[0].title, resultBA[0].title,
+                        "Both devices must converge to the same item when timestamps tie")
+        XCTAssertEqual(resultAB[0].tags, resultBA[0].tags)
+    }
+
+    /// File items with equal timestamps must also converge deterministically.
+    func testEqualTimestampsFileItemsConverge() {
+        let a = fileItem(id: "f1", title: "Photo.jpg", tags: ["Photo", "Beach"],
+                         fileName: "abc.jpg", modifiedAt: 500)
+        let b = fileItem(id: "f1", title: "Photo.jpg", tags: ["Photo", "Mountain"],
+                         fileName: "abc.jpg", modifiedAt: 500)
+
+        let ab = StorageService.mergeItems(local: [a], remote: [b], deletedIDs: [])
+        let ba = StorageService.mergeItems(local: [b], remote: [a], deletedIDs: [])
+
+        XCTAssertEqual(ab[0].tags, ba[0].tags,
+                        "File items must also converge when timestamps tie")
+    }
+
+    /// Items that were never modified (modifiedAt=nil, same createdAt)
+    /// must still converge if their content differs.
+    func testNeverModifiedItemsWithSameCreatedAtConverge() {
+        let a = DataItem(id: "x", type: .text, title: "Alpha", tags: ["Text"],
+                         textContent: "aaa", createdAt: 100)
+        let b = DataItem(id: "x", type: .text, title: "Beta", tags: ["Text"],
+                         textContent: "bbb", createdAt: 100)
+
+        XCTAssertNil(a.modifiedAt)
+        XCTAssertNil(b.modifiedAt)
+        XCTAssertEqual(a.effectiveModifiedAt, b.effectiveModifiedAt)
+
+        let ab = StorageService.mergeItems(local: [a], remote: [b], deletedIDs: [])
+        let ba = StorageService.mergeItems(local: [b], remote: [a], deletedIDs: [])
+
+        XCTAssertEqual(ab[0].title, ba[0].title,
+                        "Items without modifiedAt must converge via fingerprint")
+    }
+
+    // MARK: - Three-Device Convergence
+
+    /// Three devices with different local states must all converge to the
+    /// same item set after pairwise merges.
+    func testThreeDeviceConvergence() {
+        let a = [textItem(id: "a1", title: "From-A", createdAt: 100)]
+        let b = [textItem(id: "b1", title: "From-B", createdAt: 200)]
+        let c = [textItem(id: "c1", title: "From-C", createdAt: 300)]
+
+        // A syncs with B, then result syncs with C
+        let ab = StorageService.mergeItems(local: a, remote: b, deletedIDs: [])
+        let abc = StorageService.mergeItems(local: ab, remote: c, deletedIDs: [])
+
+        // B syncs with C, then result syncs with A
+        let bc = StorageService.mergeItems(local: b, remote: c, deletedIDs: [])
+        let bca = StorageService.mergeItems(local: bc, remote: a, deletedIDs: [])
+
+        // C syncs with A, then result syncs with B
+        let ca = StorageService.mergeItems(local: c, remote: a, deletedIDs: [])
+        let cab = StorageService.mergeItems(local: ca, remote: b, deletedIDs: [])
+
+        let idsABC = Set(abc.map { $0.id })
+        let idsBCA = Set(bca.map { $0.id })
+        let idsCAB = Set(cab.map { $0.id })
+
+        XCTAssertEqual(idsABC, ["a1", "b1", "c1"])
+        XCTAssertEqual(idsABC, idsBCA)
+        XCTAssertEqual(idsABC, idsCAB)
+    }
+
+    /// Three devices with conflicting edits on the same item must all
+    /// converge to the same winner.
+    func testThreeDeviceConflictConvergence() {
+        let a = textItem(id: "x", title: "A-edit", modifiedAt: 300)
+        let b = textItem(id: "x", title: "B-edit", modifiedAt: 400)
+        let c = textItem(id: "x", title: "C-edit", modifiedAt: 400) // ties with B
+
+        // All pairwise merge orderings
+        let ab_c = StorageService.mergeItems(
+            local: StorageService.mergeItems(local: [a], remote: [b], deletedIDs: []),
+            remote: [c], deletedIDs: [])
+        let ac_b = StorageService.mergeItems(
+            local: StorageService.mergeItems(local: [a], remote: [c], deletedIDs: []),
+            remote: [b], deletedIDs: [])
+        let bc_a = StorageService.mergeItems(
+            local: StorageService.mergeItems(local: [b], remote: [c], deletedIDs: []),
+            remote: [a], deletedIDs: [])
+
+        // All must converge to the same winner
+        XCTAssertEqual(ab_c[0].title, ac_b[0].title)
+        XCTAssertEqual(ab_c[0].title, bc_a[0].title)
+    }
+
+    /// Three devices: one adds, one edits a shared item, one deletes it.
+    func testThreeDeviceAddEditDelete() {
+        let shared = textItem(id: "x", title: "Shared", createdAt: 100)
+        let deviceA = [shared, textItem(id: "a1", title: "New-A", createdAt: 200)]
+        let deviceB = [textItem(id: "x", title: "Edited", createdAt: 100, modifiedAt: 300)]
+        let deviceC: [DataItem] = [] // deleted "x"
+        let deletedIDs: Set<String> = ["x"]
+
+        // Merge A with B first, then with C's perspective
+        let ab = StorageService.mergeItems(local: deviceA, remote: deviceB, deletedIDs: deletedIDs)
+        let result = StorageService.mergeItems(local: ab, remote: deviceC, deletedIDs: deletedIDs)
+
+        // "x" should be deleted (tombstone wins), "a1" survives
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result[0].id, "a1")
+    }
+
+    // MARK: - Merge Associativity
+
+    /// Associativity: merge(merge(A,B), C) must equal merge(A, merge(B,C))
+    /// for items with distinct IDs.
+    func testMergeIsAssociativeForDistinctItems() {
+        let a = [textItem(id: "a", title: "A", createdAt: 100)]
+        let b = [textItem(id: "b", title: "B", createdAt: 200)]
+        let c = [textItem(id: "c", title: "C", createdAt: 300)]
+
+        let ab_c = StorageService.mergeItems(
+            local: StorageService.mergeItems(local: a, remote: b, deletedIDs: []),
+            remote: c, deletedIDs: [])
+        let a_bc = StorageService.mergeItems(
+            local: a,
+            remote: StorageService.mergeItems(local: b, remote: c, deletedIDs: []),
+            deletedIDs: [])
+
+        XCTAssertEqual(Set(ab_c.map { $0.id }), Set(a_bc.map { $0.id }))
+    }
+
+    /// Associativity with conflicting items.
+    func testMergeIsAssociativeForConflicts() {
+        let a = [textItem(id: "x", title: "A", modifiedAt: 100)]
+        let b = [textItem(id: "x", title: "B", modifiedAt: 200)]
+        let c = [textItem(id: "x", title: "C", modifiedAt: 300)]
+
+        let ab_c = StorageService.mergeItems(
+            local: StorageService.mergeItems(local: a, remote: b, deletedIDs: []),
+            remote: c, deletedIDs: [])
+        let a_bc = StorageService.mergeItems(
+            local: a,
+            remote: StorageService.mergeItems(local: b, remote: c, deletedIDs: []),
+            deletedIDs: [])
+
+        XCTAssertEqual(ab_c[0].title, "C")
+        XCTAssertEqual(a_bc[0].title, "C")
+    }
+
+    // MARK: - Multiple Sync Rounds
+
+    /// Repeated merges between two devices must converge and stay stable.
+    func testMultipleSyncRoundsConverge() {
+        var stateA = [
+            textItem(id: "x", title: "A-v1", modifiedAt: 100),
+            textItem(id: "a", title: "Only-A", createdAt: 50)
+        ]
+        var stateB = [
+            textItem(id: "x", title: "B-v1", modifiedAt: 200),
+            textItem(id: "b", title: "Only-B", createdAt: 150)
+        ]
+
+        // Round 1: both sync
+        let round1A = StorageService.mergeItems(local: stateA, remote: stateB, deletedIDs: [])
+        let round1B = StorageService.mergeItems(local: stateB, remote: stateA, deletedIDs: [])
+
+        // Round 2: sync again with each other's round 1 result
+        stateA = round1A
+        stateB = round1B
+        let round2A = StorageService.mergeItems(local: stateA, remote: stateB, deletedIDs: [])
+        let round2B = StorageService.mergeItems(local: stateB, remote: stateA, deletedIDs: [])
+
+        // Both must have converged after round 1 already
+        XCTAssertEqual(Set(round1A.map { $0.id }), Set(round1B.map { $0.id }))
+        // And round 2 must be stable (same as round 1)
+        XCTAssertEqual(round2A.map { $0.id }, round1A.map { $0.id })
+        XCTAssertEqual(round2B.map { $0.id }, round1B.map { $0.id })
+        // Both sides must agree on conflict resolution
+        let xA = round2A.first { $0.id == "x" }
+        let xB = round2B.first { $0.id == "x" }
+        XCTAssertEqual(xA?.title, "B-v1") // B had the newer timestamp
+        XCTAssertEqual(xB?.title, "B-v1")
+    }
+
+    /// Two devices with equal-timestamp edits must converge after multiple
+    /// rounds thanks to the deterministic tie-breaker.
+    func testEqualTimestampConvergesAfterMultipleRounds() {
+        let a = textItem(id: "x", title: "Alpha", modifiedAt: 500)
+        let b = textItem(id: "x", title: "Bravo", modifiedAt: 500)
+
+        // Round 1
+        let r1a = StorageService.mergeItems(local: [a], remote: [b], deletedIDs: [])
+        let r1b = StorageService.mergeItems(local: [b], remote: [a], deletedIDs: [])
+
+        // Both must already agree
+        XCTAssertEqual(r1a[0].title, r1b[0].title)
+
+        // Round 2 (should be stable)
+        let r2a = StorageService.mergeItems(local: r1a, remote: r1b, deletedIDs: [])
+        let r2b = StorageService.mergeItems(local: r1b, remote: r1a, deletedIDs: [])
+
+        XCTAssertEqual(r2a[0].title, r1a[0].title)
+        XCTAssertEqual(r2b[0].title, r1b[0].title)
+    }
+
+    // MARK: - Tombstone Edge Cases
+
+    /// A new item added with an ID that matches a tombstone must be blocked.
+    /// This prevents "zombie" items when UUIDs theoretically collide or
+    /// items are recreated with the same ID.
+    func testReAddWithTombstonedIDIsBlocked() {
+        let item = textItem(id: "recycled", title: "Resurrected", modifiedAt: 9999)
+        let deletedIDs: Set<String> = ["recycled"]
+
+        let result = StorageService.mergeItems(local: [item], remote: [], deletedIDs: deletedIDs)
+        XCTAssertTrue(result.isEmpty,
+                       "Tombstone must block items even if they have very recent timestamps")
+    }
+
+    /// Tombstones from remote must block local items and vice versa.
+    func testCrossDeviceTombstoneBlocking() {
+        let localItem = textItem(id: "x", title: "Local-X", modifiedAt: 100)
+        let remoteItem = textItem(id: "y", title: "Remote-Y", modifiedAt: 200)
+        let localDeleted: Set<String> = ["y"] // local deleted y
+        let remoteDeleted: Set<String> = ["x"] // remote deleted x
+        let merged = localDeleted.union(remoteDeleted)
+
+        let result = StorageService.mergeItems(
+            local: [localItem], remote: [remoteItem], deletedIDs: merged)
+        XCTAssertTrue(result.isEmpty,
+                       "Cross-device deletions must remove items from both sides")
+    }
+
+    // MARK: - MergeFingerprint
+
+    /// The merge fingerprint must differ when any mutable field changes.
+    func testMergeFingerprintChangesWithContent() {
+        let base = textItem(id: "x", title: "Note")
+        var edited = base
+        edited.customName = "Custom"
+
+        XCTAssertNotEqual(base.mergeFingerprint, edited.mergeFingerprint)
+    }
+
+    /// Two items with identical content must have the same fingerprint.
+    func testMergeFingerprintIdenticalForSameContent() {
+        let a = textItem(id: "x", title: "Note", tags: ["Text"], text: "hello", createdAt: 100)
+        let b = textItem(id: "x", title: "Note", tags: ["Text"], text: "hello", createdAt: 100)
+
+        XCTAssertEqual(a.mergeFingerprint, b.mergeFingerprint)
+    }
+
+    /// Fingerprint must distinguish between different optional field states.
+    func testMergeFingerprintDistinguishesOptionalFields() {
+        let withApp = DataItem(id: "x", type: .text, title: "Note", tags: ["Text"],
+                               createdAt: 100, sourceApp: "Safari")
+        let withLocation = DataItem(id: "x", type: .text, title: "Note", tags: ["Text"],
+                                    createdAt: 100, location: "Berlin")
+        let plain = DataItem(id: "x", type: .text, title: "Note", tags: ["Text"],
+                             createdAt: 100)
+
+        XCTAssertNotEqual(withApp.mergeFingerprint, withLocation.mergeFingerprint)
+        XCTAssertNotEqual(withApp.mergeFingerprint, plain.mergeFingerprint)
+        XCTAssertNotEqual(withLocation.mergeFingerprint, plain.mergeFingerprint)
+    }
+
+    // MARK: - Realistic Multi-Device Scenario
+
+    /// Full scenario: Device A and B start in sync, then both go offline,
+    /// make independent changes, come back online, and sync.
+    func testOfflineEditsThenSync() {
+        // Initial shared state (both devices are in sync)
+        let shared = [
+            textItem(id: "s1", title: "Shopping List", tags: ["Text", "Personal"],
+                     text: "Milk, Eggs", createdAt: 100, modifiedAt: 100),
+            textItem(id: "s2", title: "Meeting Notes", tags: ["Text", "Work"],
+                     text: "Discuss Q2", createdAt: 200, modifiedAt: 200),
+            textItem(id: "s3", title: "Old Note", tags: ["Text"],
+                     text: "Delete me", createdAt: 50)
+        ]
+
+        // Device A offline changes:
+        // - Edits s1 (adds item to shopping list)
+        // - Deletes s3
+        // - Adds new item a1
+        var deviceA = shared
+        deviceA[0] = textItem(id: "s1", title: "Shopping List", tags: ["Text", "Personal"],
+                              text: "Milk, Eggs, Bread", createdAt: 100, modifiedAt: 400)
+        deviceA.removeAll { $0.id == "s3" }
+        deviceA.append(textItem(id: "a1", title: "Vacation Plan", createdAt: 350))
+        let deletedA: Set<String> = ["s3"]
+
+        // Device B offline changes:
+        // - Edits s2 (updates meeting notes)
+        // - Adds new item b1
+        var deviceB = shared
+        deviceB[1] = textItem(id: "s2", title: "Meeting Notes", tags: ["Text", "Work"],
+                              text: "Discuss Q2 + Q3", createdAt: 200, modifiedAt: 500)
+        deviceB.append(textItem(id: "b1", title: "Recipe", createdAt: 450))
+        let deletedB: Set<String> = []
+
+        let mergedDeleted = deletedA.union(deletedB)
+
+        // Both sync
+        let resultA = StorageService.mergeItems(local: deviceA, remote: deviceB, deletedIDs: mergedDeleted)
+        let resultB = StorageService.mergeItems(local: deviceB, remote: deviceA, deletedIDs: mergedDeleted)
+
+        // Both must converge
+        XCTAssertEqual(Set(resultA.map { $0.id }), Set(resultB.map { $0.id }))
+        XCTAssertEqual(resultA.count, 4) // s1, s2, a1, b1 (s3 deleted)
+
+        let byIdA = Dictionary(uniqueKeysWithValues: resultA.map { ($0.id, $0) })
+        XCTAssertEqual(byIdA["s1"]?.textContent, "Milk, Eggs, Bread") // A's edit
+        XCTAssertEqual(byIdA["s2"]?.textContent, "Discuss Q2 + Q3")   // B's edit
+        XCTAssertNotNil(byIdA["a1"])
+        XCTAssertNotNil(byIdA["b1"])
+        XCTAssertNil(byIdA["s3"]) // deleted by A
+    }
+
+    /// Both devices edit the same item and also add new items, with some
+    /// items being deleted by one device.
+    func testComplexConcurrentChanges() {
+        let shared = [
+            textItem(id: "x", title: "X", createdAt: 100, modifiedAt: 100),
+            textItem(id: "y", title: "Y", createdAt: 200, modifiedAt: 200),
+            textItem(id: "z", title: "Z", createdAt: 300, modifiedAt: 300)
+        ]
+
+        // Device A: edit x, delete y, add a1
+        let deviceA = [
+            textItem(id: "x", title: "X-A", createdAt: 100, modifiedAt: 600),
+            textItem(id: "z", title: "Z", createdAt: 300, modifiedAt: 300),
+            textItem(id: "a1", title: "A1", createdAt: 500)
+        ]
+        let deletedA: Set<String> = ["y"]
+
+        // Device B: edit x (older), edit z, delete nothing, add b1
+        let deviceB = [
+            textItem(id: "x", title: "X-B", createdAt: 100, modifiedAt: 550),
+            textItem(id: "y", title: "Y", createdAt: 200, modifiedAt: 200),
+            textItem(id: "z", title: "Z-B", createdAt: 300, modifiedAt: 700),
+            textItem(id: "b1", title: "B1", createdAt: 450)
+        ]
+        let deletedB: Set<String> = []
+
+        let mergedDeleted = deletedA.union(deletedB)
+
+        let resultA = StorageService.mergeItems(local: deviceA, remote: deviceB, deletedIDs: mergedDeleted)
+        let resultB = StorageService.mergeItems(local: deviceB, remote: deviceA, deletedIDs: mergedDeleted)
+
+        // Must converge
+        XCTAssertEqual(Set(resultA.map { $0.id }), Set(resultB.map { $0.id }))
+        XCTAssertEqual(resultA.count, 4) // x, z, a1, b1
+
+        let byIdA = Dictionary(uniqueKeysWithValues: resultA.map { ($0.id, $0) })
+        let byIdB = Dictionary(uniqueKeysWithValues: resultB.map { ($0.id, $0) })
+        XCTAssertEqual(byIdA["x"]?.title, "X-A")  // A newer (600 > 550)
+        XCTAssertEqual(byIdB["x"]?.title, "X-A")
+        XCTAssertEqual(byIdA["z"]?.title, "Z-B")  // B newer (700 > 300)
+        XCTAssertEqual(byIdB["z"]?.title, "Z-B")
     }
 }
