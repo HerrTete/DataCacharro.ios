@@ -592,6 +592,18 @@ final class SyncMergeTests: XCTestCase {
         XCTAssertEqual(result[0].title, "NewerDup")
     }
 
+    // MARK: - syncFromiCloudAsync Completion
+
+    /// Verifies that syncFromiCloudAsync completes even when iCloud is
+    /// unavailable (iCloudURL == nil), so .refreshable never hangs.
+    func testSyncFromiCloudAsyncCompletesWhenICloudUnavailable() async {
+        let storage = StorageService()
+        // In unit-test environments iCloudURL is nil because there is no
+        // ubiquity container. The async wrapper must still resume.
+        await storage.syncFromiCloudAsync()
+        // Reaching this line means the continuation resumed – test passes.
+    }
+
     // MARK: - Cross-Device Convergence (Equal Timestamps)
 
     /// When two devices independently edit the same item at the exact same

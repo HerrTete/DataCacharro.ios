@@ -30,6 +30,9 @@ struct TagsView: View {
                 }
             }
         }
+        .refreshable {
+            await storage.syncFromiCloudAsync()
+        }
         .overlay {
             if storage.allTags.isEmpty {
                 ContentUnavailableView(
