@@ -8,6 +8,7 @@ class StorageService: ObservableObject {
 
     private var deletedIDs: Set<String> = []
     private var isSyncing = false
+    private var pendingSyncCompletions: [() -> Void] = []
     private var metadataQuery: NSMetadataQuery?
     private static let syncDebounceDelay: TimeInterval = 2
 
@@ -272,21 +273,22 @@ class StorageService: ObservableObject {
 
     private func syncFromiCloud(completion: (() -> Void)?) {
         guard !isSyncing else {
-            completion?()
+            if let completion = completion {
+                pendingSyncCompletions.append(completion)
+            }
             return
         }
         isSyncing = true
 
         DispatchQueue.global(qos: .background).async { [weak self] in
             guard let self = self else {
-                completion?()
+                DispatchQueue.main.async { completion?() }
                 return
             }
 
             guard let iCloudURL = self.iCloudURL else {
                 DispatchQueue.main.async {
-                    self.isSyncing = false
-                    completion?()
+                    self.finishSync(completion: completion)
                 }
                 return
             }
@@ -369,14 +371,25 @@ class StorageService: ObservableObject {
                 self.items = mergedItems
                 self.saveDeletedIDs()
                 self.saveItemsLocally()
-                completion?()
-
-                // Delay resetting isSyncing to prevent re-entrant sync
-                // triggered by NSMetadataQuery detecting our own upload
-                DispatchQueue.main.asyncAfter(deadline: .now() + StorageService.syncDebounceDelay) {
-                    self.isSyncing = false
-                }
+                self.finishSync(completion: completion)
             }
+        }
+    }
+
+    /// Invokes the given completion together with any coalesced pending
+    /// completions, then resets `isSyncing` after the debounce delay.
+    /// Must be called on the main queue.
+    private func finishSync(completion: (() -> Void)?) {
+        let pending = pendingSyncCompletions
+        pendingSyncCompletions = []
+
+        completion?()
+        for cb in pending { cb() }
+
+        // Delay resetting isSyncing to prevent re-entrant sync
+        // triggered by NSMetadataQuery detecting our own upload
+        DispatchQueue.main.asyncAfter(deadline: .now() + StorageService.syncDebounceDelay) {
+            self.isSyncing = false
         }
     }
 
