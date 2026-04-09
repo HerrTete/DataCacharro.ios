@@ -360,7 +360,10 @@ class StorageService: ObservableObject {
 
     /// Merges local and remote items using a Last-Writer-Wins Element-Set strategy.
     /// Items are matched by ID. For items existing on both sides, the one with
-    /// the newer `effectiveModifiedAt` wins. Deleted IDs are removed from the result.
+    /// the newer `effectiveModifiedAt` wins. When timestamps are equal, a
+    /// deterministic fingerprint comparison ensures both devices converge to
+    /// the same result regardless of which side is treated as "local".
+    /// Deleted IDs are removed from the result.
     static func mergeItems(local: [DataItem], remote: [DataItem], deletedIDs: Set<String>) -> [DataItem] {
         var merged: [String: DataItem] = [:]
 
@@ -370,7 +373,9 @@ class StorageService: ObservableObject {
 
         for item in remote {
             if let existing = merged[item.id] {
-                if item.effectiveModifiedAt > existing.effectiveModifiedAt {
+                if item.effectiveModifiedAt > existing.effectiveModifiedAt ||
+                   (item.effectiveModifiedAt == existing.effectiveModifiedAt &&
+                    item.mergeFingerprint > existing.mergeFingerprint) {
                     merged[item.id] = item
                 }
             } else {
