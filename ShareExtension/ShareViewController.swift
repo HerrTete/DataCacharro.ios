@@ -7,7 +7,7 @@ class ShareViewController: UIViewController {
     // MARK: - Pending items
 
     nonisolated(unsafe) private var pendingItems: [DataItem] = []
-    nonisolated(unsafe) private let itemsLock = NSLock()
+    private let itemsLock = NSLock()
     nonisolated(unsafe) private var sourceAppTag: String?
 
     // Generic bundle ID segments that do not carry a meaningful app name.
