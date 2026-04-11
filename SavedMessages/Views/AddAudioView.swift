@@ -218,6 +218,8 @@ struct AddAudioView: View {
                         .font(.system(size: 52))
                         .foregroundStyle(.purple)
                 }
+                .accessibilityLabel(isPlaying ? "Pause" : "Play")
+                .accessibilityHint("Controls audio playback")
                 .accessibilityIdentifier("playPauseButton")
             }
 
