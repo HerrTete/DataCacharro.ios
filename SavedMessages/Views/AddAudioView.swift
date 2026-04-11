@@ -370,7 +370,7 @@ struct AddAudioView: View {
 
     private func startPlaybackTimer() {
         playbackTimer?.invalidate()
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             guard let player, !isSeeking else { return }
             playbackPosition = player.currentTime
             if !player.isPlaying && isPlaying {
