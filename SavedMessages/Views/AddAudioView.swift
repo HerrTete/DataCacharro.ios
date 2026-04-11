@@ -371,6 +371,7 @@ struct AddAudioView: View {
         player = nil
         isPlaying = false
         playbackPosition = 0
+        deactivateAudioSession()
     }
 
     private func startPlaybackTimer() {
@@ -379,9 +380,10 @@ struct AddAudioView: View {
             guard let player, !isSeeking else { return }
             playbackPosition = player.currentTime
             if !player.isPlaying && isPlaying {
-                // Playback finished
+                // Playback finished — reset to beginning
                 isPlaying = false
-                playbackPosition = playbackDuration
+                player.currentTime = 0
+                playbackPosition = 0
                 playbackTimer?.invalidate()
                 playbackTimer = nil
             }
@@ -407,6 +409,11 @@ struct AddAudioView: View {
         if let url = recordingURL {
             try? FileManager.default.removeItem(at: url)
         }
+        deactivateAudioSession()
+    }
+
+    private func deactivateAudioSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
