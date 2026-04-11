@@ -88,6 +88,9 @@ struct AddAudioView: View {
         .onAppear {
             LocationService.shared.start()
         }
+        .onDisappear {
+            cleanUp()
+        }
     }
 
     // MARK: - Subviews
