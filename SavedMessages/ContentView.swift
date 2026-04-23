@@ -39,13 +39,13 @@ struct ContentView: View {
                         if !isSelecting {
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 Button(action: { showingAddAudio = true }) {
-                                    Image(systemName: "mic.badge.plus")
+                                    Image(systemName: "mic")
                                 }
                                 .accessibilityIdentifier("addAudioButton")
                             }
                               ToolbarItem(placement: .navigationBarTrailing) {
                                   Button(action: { showingCamera = true }) {
-                                      Image(systemName: "camera.badge.plus")
+                                      Image(systemName: "camera")
                                   }
                                   .accessibilityIdentifier("addCameraButton")
                               }
@@ -56,13 +56,13 @@ struct ContentView: View {
                                     matching: .any(of: [.images, .videos]),
                                     photoLibrary: .shared()
                                 ) {
-                                    Image(systemName: "photo.badge.plus")
+                                    Image(systemName: "photo")
                                 }
                                 .accessibilityIdentifier("addPhotoVideoButton")
                             }
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 Button(action: { showingAddText = true }) {
-                                    Image(systemName: "text.badge.plus")
+                                    Image(systemName: "square.and.pencil")
                                 }
                                 .accessibilityIdentifier("addTextButton")
                             }
