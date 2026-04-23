@@ -42,12 +42,14 @@ struct ContentView: View {
                                     Image(systemName: "mic")
                                 }
                                 .accessibilityIdentifier("addAudioButton")
+                                .accessibilityLabel("Add Audio")
                             }
                               ToolbarItem(placement: .navigationBarTrailing) {
                                   Button(action: { showingCamera = true }) {
                                       Image(systemName: "camera")
                                   }
                                   .accessibilityIdentifier("addCameraButton")
+                                  .accessibilityLabel("Add Camera")
                               }
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 PhotosPicker(
@@ -59,12 +61,14 @@ struct ContentView: View {
                                     Image(systemName: "photo")
                                 }
                                 .accessibilityIdentifier("addPhotoVideoButton")
+                                .accessibilityLabel("Add Photo or Video")
                             }
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 Button(action: { showingAddText = true }) {
                                     Image(systemName: "square.and.pencil")
                                 }
                                 .accessibilityIdentifier("addTextButton")
+                                .accessibilityLabel("Add Text")
                             }
                         }
                     }
