@@ -127,10 +127,14 @@ struct ContentView: View {
 
     @MainActor
     private func saveSelectedPhotoItems() async {
+        let itemsToProcess = selectedPhotoItems
+        selectedPhotoItems = []
+        guard !itemsToProcess.isEmpty else { return }
+
         isProcessingPhotos = true
         photoLoadFailedCount = 0
         let location = LocationService.shared.currentAddress
-        for pickerItem in selectedPhotoItems {
+        for pickerItem in itemsToProcess {
             let contentType = pickerItem.supportedContentTypes.first
             let mimeType = contentType?.preferredMIMEType ?? "application/octet-stream"
             let ext = contentType?.preferredFilenameExtension ?? "bin"
@@ -152,7 +156,6 @@ struct ContentView: View {
                 photoLoadFailedCount += 1
             }
         }
-        selectedPhotoItems = []
         isProcessingPhotos = false
         if photoLoadFailedCount > 0 {
             showingPhotoLoadError = true
