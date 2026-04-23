@@ -466,6 +466,8 @@ final class SavedMessagesUITests: XCTestCase {
         // Delete selected should appear with count
         let deleteSelected = app.buttons["deleteSelectedButton"]
         XCTAssertTrue(deleteSelected.waitForExistence(timeout: 2), "Delete selected button should appear")
+        XCTAssertTrue(app.tabBars.firstMatch.exists, "Tab bar should stay visible in Items selection mode")
+        XCTAssertTrue(app.tabBars.buttons["Items"].exists, "Items tab should still be present while bulk delete is available")
 
         // Deselect All – tapping selectButton again when all selected should deselect
         app.buttons["selectButton"].tap()
