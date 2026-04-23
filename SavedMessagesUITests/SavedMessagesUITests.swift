@@ -60,6 +60,8 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addTextButton"].isEnabled, "Add text button should be enabled")
         XCTAssertTrue(app.buttons["addPhotoVideoButton"].exists, "Add photo/video button should be visible")
         XCTAssertTrue(app.buttons["addPhotoVideoButton"].isEnabled, "Add photo/video button should be enabled")
+        XCTAssertTrue(app.buttons["addCameraButton"].exists, "Add camera button should be visible")
+        XCTAssertTrue(app.buttons["addCameraButton"].isEnabled, "Add camera button should be enabled")
         XCTAssertTrue(app.buttons["addAudioButton"].exists, "Add audio button should be visible")
         XCTAssertTrue(app.buttons["addAudioButton"].isEnabled, "Add audio button should be enabled")
     }
@@ -139,25 +141,11 @@ final class SavedMessagesUITests: XCTestCase {
 
     // MARK: - Add Photo/Video Flow
 
-    func testAddPhotoVideoSheetUI() {
-        app.buttons["addPhotoVideoButton"].tap()
-        XCTAssertTrue(app.navigationBars["Photos & Videos"].waitForExistence(timeout: 2))
-
-        XCTAssertTrue(app.buttons["cancelButton"].exists, "Cancel button should exist")
-        XCTAssertTrue(app.buttons["cameraButton"].exists, "Camera button should exist")
-        XCTAssertTrue(app.buttons["cameraButton"].isEnabled, "Camera button should be enabled")
-
-        let saveButton = app.buttons["saveButton"]
-        XCTAssertTrue(saveButton.exists, "Save button should exist")
-        XCTAssertFalse(saveButton.isEnabled, "Save should be disabled when no items are selected")
-
-        XCTAssertTrue(app.staticTexts["Take Photo or Video"].exists, "Camera option should exist")
-        XCTAssertTrue(app.staticTexts["Select Photos & Videos"].exists, "Library option should exist")
-        XCTAssertTrue(app.staticTexts["Capture with your camera"].exists, "Camera subtitle should exist")
-        XCTAssertTrue(app.staticTexts["Tap to choose from your library"].exists, "Library subtitle should exist")
-
-        app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+    func testAddPhotoVideoButtonExists() {
+        XCTAssertTrue(app.buttons["addPhotoVideoButton"].exists, "Add photo/video button should exist")
+        XCTAssertTrue(app.buttons["addPhotoVideoButton"].isEnabled, "Add photo/video button should be enabled")
+        XCTAssertTrue(app.buttons["addCameraButton"].exists, "Add camera button should exist")
+        XCTAssertTrue(app.buttons["addCameraButton"].isEnabled, "Add camera button should be enabled")
     }
 
     // MARK: - Tags View
@@ -683,15 +671,9 @@ final class SavedMessagesUITests: XCTestCase {
         app.buttons["cancelButton"].tap()
         XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
 
-        // Open and reopen Add Photo/Video
-        app.buttons["addPhotoVideoButton"].tap()
-        XCTAssertTrue(app.navigationBars["Photos & Videos"].waitForExistence(timeout: 2))
-        app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
-        app.buttons["addPhotoVideoButton"].tap()
-        XCTAssertTrue(app.navigationBars["Photos & Videos"].waitForExistence(timeout: 2))
-        app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        // Open and reopen Add Photo/Video (now opens system photo picker directly; no nav bar to check)
+        XCTAssertTrue(app.buttons["addPhotoVideoButton"].exists, "Add photo/video button should be accessible")
+        XCTAssertTrue(app.buttons["addCameraButton"].exists, "Add camera button should be accessible")
 
         // Open and reopen detail
         addTextItem("Reopen detail test")
