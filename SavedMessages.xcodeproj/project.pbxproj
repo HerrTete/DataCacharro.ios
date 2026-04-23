@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1A9536E050764E70B5288E50 /* AddPhotoVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65CA0F1D38E24F0C99F70B6F /* AddPhotoVideoView.swift */; };
+
 		207029D477134FFCBA734685 /* AddTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94B75223564A3AB0E96E22 /* AddTextView.swift */; };
 		33F6D38138EA42AF848CBE0C /* AddAudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E8EBCB75BB44C56B043975B /* AddAudioView.swift */; };
 		5A2AA24D4A2A4059A22BC7C2 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A782A63F2A504632B05CB4FC /* StorageService.swift */; };
@@ -80,7 +80,6 @@
 		2E8EBCB75BB44C56B043975B /* AddAudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAudioView.swift; sourceTree = "<group>"; };
 		300352E8836048DD868F5AA5 /* SavedMessages.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SavedMessages.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		39B24CD7FDF64502860D51EA /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		65CA0F1D38E24F0C99F70B6F /* AddPhotoVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPhotoVideoView.swift; sourceTree = "<group>"; };
 		8384B23AA4614AE3BDC44377 /* ItemListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemListView.swift; sourceTree = "<group>"; };
 		8C26471B674D4168A3C92330 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8EB876AF5FDC488EAC718802 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -185,7 +184,6 @@
 				E59981DF03CC44CF8CFAC8C3 /* ItemDetailView.swift */,
 				CD94B75223564A3AB0E96E22 /* AddTextView.swift */,
 				2E8EBCB75BB44C56B043975B /* AddAudioView.swift */,
-				65CA0F1D38E24F0C99F70B6F /* AddPhotoVideoView.swift */,
 				ABEA5C8708FF4A21A5E013B4 /* CameraPickerView.swift */,
 				C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */,
 				D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */,
@@ -429,7 +427,6 @@
 				990BE438587F488882DCB3CF /* ItemDetailView.swift in Sources */,
 				207029D477134FFCBA734685 /* AddTextView.swift in Sources */,
 				33F6D38138EA42AF848CBE0C /* AddAudioView.swift in Sources */,
-				1A9536E050764E70B5288E50 /* AddPhotoVideoView.swift in Sources */,
 				6E1D8983B19A41FFBDBCA6DB /* CameraPickerView.swift in Sources */,
 				5A2AA24D4A2A4059A22BC7C2 /* StorageService.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */,
