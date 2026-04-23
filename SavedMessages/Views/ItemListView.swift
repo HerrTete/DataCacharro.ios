@@ -80,7 +80,7 @@ struct ItemListView: View {
             await storage.syncFromiCloudAsync()
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItemGroup(placement: .navigationBarLeading) {
                 if isSelecting {
                     Button("Cancel") {
                         isSelecting = false
@@ -88,8 +88,6 @@ struct ItemListView: View {
                     }
                     .accessibilityIdentifier("cancelSelectButton")
                 }
-            }
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if showingSelectionBar {
                     Button(role: .destructive, action: deleteSelectedItems) {
                         Image(systemName: "trash")
@@ -97,6 +95,8 @@ struct ItemListView: View {
                     .accessibilityIdentifier("deleteSelectedButton")
                     .accessibilityLabel("Delete \(selectedIDs.count) selected item(s)")
                 }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 if !displayedItems.isEmpty {
                     let allSelected = selectedIDs.count == displayedItems.count
                     Button(isSelecting ? (allSelected ? "Deselect All" : "Select All") : "Select") {
