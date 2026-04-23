@@ -16,7 +16,7 @@ struct TagsView: View {
         List {
             ForEach(tagsWithCounts, id: \.tag) { entry in
                 NavigationLink {
-                    ItemListView(isSelecting: $tagListSelecting, filterTag: entry.tag)
+                    ItemListView(filterTag: entry.tag, isSelecting: $tagListSelecting)
                         .navigationTitle(entry.tag)
                 } label: {
                     HStack {
