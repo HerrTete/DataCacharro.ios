@@ -43,12 +43,12 @@ struct ContentView: View {
                                 }
                                 .accessibilityIdentifier("addAudioButton")
                             }
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button(action: { showingCamera = true }) {
-                                    Image(systemName: "camera.badge.plus")
-                                }
-                                .accessibilityIdentifier("addCameraButton")
-                            }
+                             ToolbarItem(placement: .navigationBarTrailing) {
+                                 Button(action: { showingCamera = true }) {
+                                     Image(systemName: "camera")
+                                 }
+                                 .accessibilityIdentifier("addCameraButton")
+                             }
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 PhotosPicker(
                                     selection: $selectedPhotoItems,
