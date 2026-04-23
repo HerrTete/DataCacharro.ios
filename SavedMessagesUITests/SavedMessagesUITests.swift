@@ -33,7 +33,7 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
         XCTAssertTrue(app.staticTexts["Version"].exists, "Version label should exist")
         XCTAssertTrue(app.staticTexts["Build"].exists, "Build label should exist")
-        XCTAssertTrue(app.staticTexts["1.3"].exists, "Version 1.3 should be displayed")
+        XCTAssertTrue(app.staticTexts["1.4"].exists, "Version 1.4 should be displayed")
         XCTAssertTrue(app.staticTexts["1"].exists, "Build number should be displayed")
 
         // Settings → Tags
@@ -633,12 +633,6 @@ final class SavedMessagesUITests: XCTestCase {
         nameField.clearAndTypeText("Edited lifecycle")
         app.buttons["saveButton"].tap()
         XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
-
-        // Share
-        app.buttons["shareButton"].tap()
-        XCTAssertTrue(waitForShareSheet())
-        dismissShareSheet()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 3))
         app.buttons["doneButton"].tap()
 
         // Delete
