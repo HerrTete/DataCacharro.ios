@@ -87,25 +87,26 @@ struct ItemListView: View {
                         selectedIDs = []
                     }
                     .accessibilityIdentifier("cancelSelectButton")
-                }
-                if showingSelectionBar {
-                    Button(role: .destructive, action: deleteSelectedItems) {
-                        Image(systemName: "trash")
+                    if showingSelectionBar {
+                        Button(role: .destructive, action: deleteSelectedItems) {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityIdentifier("deleteSelectedButton")
+                        .accessibilityLabel("Delete \(selectedIDs.count) selected item(s)")
                     }
-                    .accessibilityIdentifier("deleteSelectedButton")
-                    .accessibilityLabel("Delete \(selectedIDs.count) selected item(s)")
+                } else if !displayedItems.isEmpty {
+                    Button("Select") {
+                        isSelecting = true
+                        selectedIDs = []
+                    }
+                    .accessibilityIdentifier("selectButton")
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                if !displayedItems.isEmpty {
+                if isSelecting && !displayedItems.isEmpty {
                     let allSelected = selectedIDs.count == displayedItems.count
-                    Button(isSelecting ? (allSelected ? "Deselect All" : "Select All") : "Select") {
-                        if isSelecting {
-                            selectedIDs = allSelected ? [] : Set(displayedItems.map { $0.id })
-                        } else {
-                            isSelecting = true
-                            selectedIDs = []
-                        }
+                    Button(allSelected ? "Deselect All" : "Select All") {
+                        selectedIDs = allSelected ? [] : Set(displayedItems.map { $0.id })
                     }
                     .accessibilityIdentifier("selectButton")
                 }
