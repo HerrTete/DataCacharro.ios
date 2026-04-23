@@ -4,11 +4,13 @@ struct AddTextView: View {
     @EnvironmentObject var storage: StorageService
     @Environment(\.dismiss) var dismiss
     @State private var text = ""
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         NavigationStack {
             TextEditor(text: $text)
                 .padding()
+                .focused($isFocused)
                 .accessibilityIdentifier("textEditor")
                 .navigationTitle("Add Text")
                 .navigationBarTitleDisplayMode(.inline)
@@ -31,6 +33,7 @@ struct AddTextView: View {
         }
         .onAppear {
             LocationService.shared.start()
+            isFocused = true
         }
     }
 }
