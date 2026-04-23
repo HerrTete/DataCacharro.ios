@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 import AVKit
 import QuickLook
 
@@ -228,8 +229,12 @@ struct VideoDetailView: View {
 struct AudioDetailView: View {
     let item: DataItem
     @EnvironmentObject var storage: StorageService
-    @State private var player: AVPlayer?
+    @State private var player: AVAudioPlayer?
     @State private var isPlaying = false
+    @State private var currentTime: TimeInterval = 0
+    @State private var duration: TimeInterval = 0
+    @State private var isSeeking = false
+    @State private var playbackTimer: Timer?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -242,30 +247,105 @@ struct AudioDetailView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
+            VStack(spacing: 4) {
+                Slider(
+                    value: $currentTime,
+                    in: 0...max(duration, 0.01),
+                    onEditingChanged: { editing in
+                        isSeeking = editing
+                        if editing {
+                            if isPlaying { player?.pause() }
+                        } else {
+                            player?.currentTime = currentTime
+                            if isPlaying { player?.play() }
+                        }
+                    }
+                )
+                .tint(.purple)
+                .accessibilityIdentifier("playbackSlider")
+
+                HStack {
+                    Text(formatDuration(currentTime))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(formatDuration(duration))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal)
+
             Button(action: togglePlayback) {
                 Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 60))
                     .foregroundStyle(.purple)
             }
+            .accessibilityLabel(isPlaying ? "Pause" : "Play")
+            .accessibilityIdentifier("playPauseButton")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             if let url = storage.fileURL(for: item) {
-                player = AVPlayer(url: url)
+                do {
+                    try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                    try AVAudioSession.sharedInstance().setActive(true)
+                    let p = try AVAudioPlayer(contentsOf: url)
+                    p.prepareToPlay()
+                    player = p
+                    duration = p.duration
+                } catch {}
             }
         }
         .onDisappear {
-            player?.pause()
+            stopPlayback()
         }
     }
 
     private func togglePlayback() {
+        guard let player else { return }
         if isPlaying {
-            player?.pause()
+            player.pause()
+            playbackTimer?.invalidate()
+            playbackTimer = nil
+            isPlaying = false
         } else {
-            player?.play()
+            if player.currentTime >= player.duration - 0.1 {
+                player.currentTime = 0
+                currentTime = 0
+            }
+            player.play()
+            isPlaying = true
+            startPlaybackTimer()
         }
-        isPlaying.toggle()
+    }
+
+    private func stopPlayback() {
+        player?.stop()
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        isPlaying = false
+    }
+
+    private func startPlaybackTimer() {
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            guard let player, !isSeeking else { return }
+            currentTime = player.currentTime
+            if !player.isPlaying && isPlaying {
+                isPlaying = false
+                player.currentTime = 0
+                currentTime = 0
+                playbackTimer?.invalidate()
+                playbackTimer = nil
+            }
+        }
+    }
+
+    private func formatDuration(_ t: TimeInterval) -> String {
+        let minutes = Int(t) / 60
+        let seconds = Int(t) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 
