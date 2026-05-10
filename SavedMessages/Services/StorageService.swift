@@ -278,10 +278,12 @@ class StorageService: ObservableObject {
 
     /// Performs a manual sync and returns a summary of what changed.
     func manualSync() async -> SyncResult {
-        var errors: [String] = []
-
-        if iCloudURL == nil {
-            errors.append(NSLocalizedString("iCloud is not available.", comment: ""))
+        guard iCloudURL != nil else {
+            return SyncResult(
+                itemsAdded: 0,
+                itemsUpdated: 0,
+                errors: [NSLocalizedString("iCloud is not available.", comment: "")]
+            )
         }
 
         // Snapshot the items before syncing (keyed by id → effectiveModifiedAt)
@@ -305,7 +307,7 @@ class StorageService: ObservableObject {
             }
         }
 
-        return SyncResult(itemsAdded: added, itemsUpdated: updated, errors: errors)
+        return SyncResult(itemsAdded: added, itemsUpdated: updated, errors: [])
     }
 
     func syncFromiCloud() {
