@@ -29,8 +29,9 @@ struct SettingsView: View {
 
             Section {
                 Button {
+                    guard !isSyncing else { return }
+                    isSyncing = true
                     Task {
-                        isSyncing = true
                         let result = await storage.manualSync()
                         isSyncing = false
                         syncResult = result
@@ -51,7 +52,12 @@ struct SettingsView: View {
                 Text("iCloud")
             }
         }
-        .alert("Sync Complete", isPresented: $showSyncResult, presenting: syncResult) { _ in
+        .alert(
+            syncResult?.hasErrors == true
+                ? NSLocalizedString("Sync Result", comment: "")
+                : NSLocalizedString("Sync Complete", comment: ""),
+            isPresented: $showSyncResult, presenting: syncResult
+        ) { _ in
             Button("OK", role: .cancel) { }
         } message: { result in
             Text(syncSummaryMessage(for: result))

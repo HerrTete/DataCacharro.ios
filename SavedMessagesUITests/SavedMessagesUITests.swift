@@ -692,14 +692,17 @@ final class SavedMessagesUITests: XCTestCase {
     }
 
     private func dismissShareSheet() {
-        let closeButton = app.navigationBars.buttons["Close"]
-        if closeButton.waitForExistence(timeout: 2) {
-            closeButton.tap()
+        let activityListView = app.otherElements["ActivityListView"]
+        let navCloseButton = app.navigationBars.buttons["Close"]
+        if navCloseButton.waitForExistence(timeout: 2) {
+            navCloseButton.tap()
         } else if app.buttons["Close"].firstMatch.waitForExistence(timeout: 2) {
             app.buttons["Close"].firstMatch.tap()
+        } else {
+            // Fallback for iOS simulators where the Close button is absent: swipe the sheet down
+            activityListView.swipeDown()
         }
-        let activityListView = app.otherElements["ActivityListView"]
-        let dismissed = activityListView.waitForNonExistence(timeout: 3)
+        let dismissed = activityListView.waitForNonExistence(timeout: 5)
         XCTAssertTrue(dismissed, "Share sheet should be dismissed")
     }
 

@@ -286,9 +286,11 @@ class StorageService: ObservableObject {
             )
         }
 
-        // Snapshot the items before syncing (keyed by id → effectiveModifiedAt)
+        // Snapshot the items before syncing (keyed by id → effectiveModifiedAt).
+        // Use uniquingKeysWith to tolerate any duplicate IDs in corrupted data.
         let beforeMap: [String: Double] = Dictionary(
-            uniqueKeysWithValues: items.map { ($0.id, $0.effectiveModifiedAt) }
+            items.map { ($0.id, $0.effectiveModifiedAt) },
+            uniquingKeysWith: { max($0, $1) }
         )
 
         await syncFromiCloudAsync()
