@@ -1,6 +1,15 @@
 import Foundation
 import UIKit
 
+struct SyncResult {
+    let itemsAdded: Int
+    let itemsUpdated: Int
+    let errors: [String]
+
+    var hasChanges: Bool { itemsAdded > 0 || itemsUpdated > 0 }
+    var hasErrors: Bool { !errors.isEmpty }
+}
+
 class StorageService: ObservableObject {
     static let shared = StorageService()
 
@@ -265,6 +274,42 @@ class StorageService: ObservableObject {
                 continuation.resume()
             }
         }
+    }
+
+    /// Performs a manual sync and returns a summary of what changed.
+    func manualSync() async -> SyncResult {
+        guard iCloudURL != nil else {
+            return SyncResult(
+                itemsAdded: 0,
+                itemsUpdated: 0,
+                errors: [NSLocalizedString("iCloud is not available.", comment: "")]
+            )
+        }
+
+        // Snapshot the items before syncing (keyed by id → effectiveModifiedAt).
+        // Use uniquingKeysWith to tolerate any duplicate IDs in corrupted data.
+        let beforeMap: [String: Double] = Dictionary(
+            items.map { ($0.id, $0.effectiveModifiedAt) },
+            uniquingKeysWith: { max($0, $1) }
+        )
+
+        await syncFromiCloudAsync()
+
+        let afterItems = items
+        var added = 0
+        var updated = 0
+
+        for item in afterItems {
+            if let beforeModified = beforeMap[item.id] {
+                if item.effectiveModifiedAt > beforeModified {
+                    updated += 1
+                }
+            } else {
+                added += 1
+            }
+        }
+
+        return SyncResult(itemsAdded: added, itemsUpdated: updated, errors: [])
     }
 
     func syncFromiCloud() {

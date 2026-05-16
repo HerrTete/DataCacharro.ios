@@ -33,8 +33,10 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
         XCTAssertTrue(app.staticTexts["Version"].exists, "Version label should exist")
         XCTAssertTrue(app.staticTexts["Build"].exists, "Build label should exist")
-        XCTAssertTrue(app.staticTexts["1.4"].exists, "Version 1.4 should be displayed")
+        XCTAssertTrue(app.staticTexts["1.5"].exists, "Version 1.5 should be displayed")
         XCTAssertTrue(app.staticTexts["1"].exists, "Build number should be displayed")
+        XCTAssertTrue(app.buttons["syncNowButton"].exists, "Sync now button should exist")
+        XCTAssertTrue(app.buttons["syncNowButton"].isEnabled, "Sync now button should be enabled")
 
         // Settings → Tags
         app.tabBars.buttons["Tags"].tap()
@@ -690,14 +692,17 @@ final class SavedMessagesUITests: XCTestCase {
     }
 
     private func dismissShareSheet() {
-        let closeButton = app.navigationBars.buttons["Close"]
-        if closeButton.waitForExistence(timeout: 2) {
-            closeButton.tap()
+        let activityListView = app.otherElements["ActivityListView"]
+        let navCloseButton = app.navigationBars.buttons["Close"]
+        if navCloseButton.waitForExistence(timeout: 2) {
+            navCloseButton.tap()
         } else if app.buttons["Close"].firstMatch.waitForExistence(timeout: 2) {
             app.buttons["Close"].firstMatch.tap()
+        } else {
+            // Fallback for iOS simulators where the Close button is absent: swipe the sheet down
+            activityListView.swipeDown()
         }
-        let activityListView = app.otherElements["ActivityListView"]
-        let dismissed = activityListView.waitForNonExistence(timeout: 3)
+        let dismissed = activityListView.waitForNonExistence(timeout: 5)
         XCTAssertTrue(dismissed, "Share sheet should be dismissed")
     }
 
