@@ -219,6 +219,7 @@ struct ItemRowView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("shareButton_\(item.id)")
+                .accessibilityLabel("Share \(item.displayName)")
             }
         }
         .padding(.vertical, 4)
