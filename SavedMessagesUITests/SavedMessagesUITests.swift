@@ -33,7 +33,7 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
         XCTAssertTrue(app.staticTexts["Version"].exists, "Version label should exist")
         XCTAssertTrue(app.staticTexts["Build"].exists, "Build label should exist")
-        XCTAssertTrue(app.staticTexts["1.5"].exists, "Version 1.5 should be displayed")
+        XCTAssertTrue(app.staticTexts["1.6"].exists, "Version 1.6 should be displayed")
         XCTAssertTrue(app.staticTexts["1"].exists, "Build number should be displayed")
         XCTAssertTrue(app.buttons["syncNowButton"].exists, "Sync now button should exist")
         XCTAssertTrue(app.buttons["syncNowButton"].isEnabled, "Sync now button should be enabled")
