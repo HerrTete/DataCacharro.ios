@@ -7,6 +7,7 @@ struct ItemListView: View {
     @Binding var isSelecting: Bool
     @State private var selectedItem: DataItem?
     @State private var tagItem: DataItem?
+    @State private var previewURL: URL?
     @State private var selectedIDs: Set<String> = []
 
     private var showingSelectionBar: Bool {
@@ -30,7 +31,7 @@ struct ItemListView: View {
                         if isSelecting {
                             toggleSelection(item)
                         } else if let url = item.url {
-                            UIApplication.shared.open(url)
+                            previewURL = url
                         } else {
                             selectedItem = item
                         }
@@ -119,6 +120,9 @@ struct ItemListView: View {
         .sheet(item: $tagItem) { item in
             QuickTagView(item: item)
                 .environmentObject(storage)
+        }
+        .sheet(item: $previewURL) { url in
+            WebPreviewView(url: url)
         }
         .overlay {
             if displayedItems.isEmpty {
