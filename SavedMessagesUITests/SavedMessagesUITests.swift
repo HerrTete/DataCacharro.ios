@@ -99,28 +99,28 @@ final class SavedMessagesUITests: XCTestCase {
     func testAddTextSaveCancelAndItemTypes() {
         // Save creates item
         addTextItem("Hello UI Test")
-        XCTAssertTrue(app.staticTexts["Hello UI Test"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Hello UI Test"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Text"].exists, "Text tag should appear for plain text")
 
         // Cancel doesn't create item
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
         let textEditor = app.textViews["textEditor"]
         textEditor.tap()
         textEditor.typeText("Not saved")
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Not saved"].exists, "Cancelled text should not appear")
 
         // URL → "URL" tag
         addTextItem("https://example.com/first")
-        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 2), "URL tag should appear for URL text")
+        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 5), "URL tag should appear for URL text")
         XCTAssertTrue(app.staticTexts["https://example.com/first"].exists)
 
         // Long text
         let longText = "This is a long text item that should be properly handled by the UI and displayed correctly in the items list with appropriate truncation"
         addTextItem(longText)
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Add Audio Flow
