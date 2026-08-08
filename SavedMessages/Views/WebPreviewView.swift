@@ -6,10 +6,14 @@ extension URL: @retroactive Identifiable {
 }
 
 struct WebPreviewView: View {
-    let url: URL
+    let item: DataItem
+    @EnvironmentObject var storage: StorageService
     @Environment(\.dismiss) var dismiss
     @State private var isLoading = true
     @State private var pageTitle: String = ""
+    @State private var showingEdit = false
+
+    private var url: URL { item.url! }
 
     var body: some View {
         NavigationStack {
@@ -29,6 +33,13 @@ struct WebPreviewView: View {
                 }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
+                        showingEdit = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityIdentifier("webPreviewEditButton")
+
+                    Button {
                         SharePresenter.present(items: [url])
                     } label: {
                         Image(systemName: "square.and.arrow.up")
@@ -42,6 +53,10 @@ struct WebPreviewView: View {
                     }
                     .accessibilityIdentifier("webPreviewSafariButton")
                 }
+            }
+            .sheet(isPresented: $showingEdit) {
+                EditItemView(item: item)
+                    .environmentObject(storage)
             }
         }
     }
