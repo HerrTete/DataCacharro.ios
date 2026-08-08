@@ -203,8 +203,29 @@ struct ItemRowView: View {
                 }
             }
             Spacer()
+            if !isSelecting {
+                Button {
+                    shareItem()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("shareButton_\(item.id)")
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    private func shareItem() {
+        var items: [Any] = []
+        if let text = item.textContent {
+            items.append(text)
+        } else if let url = storage.fileURL(for: item) {
+            items.append(url)
+        }
+        guard !items.isEmpty else { return }
+        SharePresenter.present(items: items)
     }
 
     @ViewBuilder
