@@ -7,6 +7,7 @@ struct ItemListView: View {
     @Binding var isSelecting: Bool
     @State private var selectedItem: DataItem?
     @State private var tagItem: DataItem?
+    @State private var previewItem: DataItem?
     @State private var selectedIDs: Set<String> = []
 
     private var showingSelectionBar: Bool {
@@ -30,7 +31,7 @@ struct ItemListView: View {
                         if isSelecting {
                             toggleSelection(item)
                         } else if let url = item.url {
-                            UIApplication.shared.open(url)
+                            previewItem = item
                         } else {
                             selectedItem = item
                         }
@@ -120,6 +121,12 @@ struct ItemListView: View {
             QuickTagView(item: item)
                 .environmentObject(storage)
         }
+        .sheet(item: $previewItem) { item in
+            if item.url != nil {
+                WebPreviewView(item: item)
+                    .environmentObject(storage)
+            }
+        }
         .overlay {
             if displayedItems.isEmpty {
                 ContentUnavailableView(
@@ -180,17 +187,15 @@ struct ItemRowView: View {
                     .lineLimit(2)
                     .font(.body)
                 if !item.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
-                            ForEach(item.tags, id: \.self) { tag in
-                                Text(tag)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.accentColor.opacity(0.15))
-                                    .foregroundStyle(Color.accentColor)
-                                    .clipShape(Capsule())
-                            }
+                    HStack(spacing: 4) {
+                        ForEach(item.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.accentColor.opacity(0.15))
+                                .foregroundStyle(Color.accentColor)
+                                .clipShape(Capsule())
                         }
                     }
                 }
@@ -205,8 +210,30 @@ struct ItemRowView: View {
                 }
             }
             Spacer()
+            if !isSelecting {
+                Button {
+                    shareItem()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("shareButton_\(item.id)")
+                .accessibilityLabel("Share \(item.displayName)")
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    private func shareItem() {
+        var items: [Any] = []
+        if let text = item.textContent {
+            items.append(text)
+        } else if let url = storage.fileURL(for: item) {
+            items.append(url)
+        }
+        guard !items.isEmpty else { return }
+        SharePresenter.present(items: items)
     }
 
     @ViewBuilder

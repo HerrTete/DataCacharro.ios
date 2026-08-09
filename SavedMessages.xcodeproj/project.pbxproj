@@ -21,6 +21,7 @@
 		AABB1122334455667788CCDF /* SafariShareUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC2233445566778899DDF0 /* SafariShareUITests.swift */; };
 		B0305A713ABB4856B9F6C76B /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 39B24CD7FDF64502860D51EA /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */; };
+		F1A2B3C4D5E6F7A8B9C0D1E2 /* WebPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6E7F8A9B0C1D2 /* WebPreviewView.swift */; };
 		B2C3D4E5F60718293A4B5C6D /* SyncMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* SyncMergeTests.swift */; };
 		CC1122334455667788990011 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0011223344556677889900 /* LocationService.swift */; };
 		CC3D4E5F6A7B8C9D0E1F2A3B /* StorageConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */; };
@@ -96,6 +97,7 @@
 		BBCC2233445566778899DDEF /* ShareExtensionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareExtensionUITests.swift; sourceTree = "<group>"; };
 		BBCC2233445566778899DDF0 /* SafariShareUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariShareUITests.swift; sourceTree = "<group>"; };
 		C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagsView.swift; sourceTree = "<group>"; };
+		E1F2A3B4C5D6E7F8A9B0C1D2 /* WebPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPreviewView.swift; sourceTree = "<group>"; };
 		CD94B75223564A3AB0E96E22 /* AddTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTextView.swift; sourceTree = "<group>"; };
 		D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E59981DF03CC44CF8CFAC8C3 /* ItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailView.swift; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 				C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */,
 				D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */,
 				AB22CC33DD44EE55FF667788 /* ZoomableImageView.swift */,
+				E1F2A3B4C5D6E7F8A9B0C1D2 /* WebPreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -431,6 +434,7 @@
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */,
 				E4B5C6D7E8F9A0B1C2D3E4F5 /* SettingsView.swift in Sources */,
 				FA11BB22CC33DD44EE55FF66 /* ZoomableImageView.swift in Sources */,
+				F1A2B3C4D5E6F7A8B9C0D1E2 /* WebPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -535,7 +539,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -552,7 +556,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -569,7 +573,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -587,7 +591,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -605,7 +609,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -629,7 +633,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SavedMessages/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -653,7 +657,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SavedMessages/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -736,7 +740,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

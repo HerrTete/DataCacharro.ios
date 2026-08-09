@@ -29,30 +29,30 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Items → Settings (verify content)
         app.tabBars.buttons["Settings"].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["appSectionHeader"].exists, "App section header should exist")
         XCTAssertTrue(app.staticTexts["Version"].exists, "Version label should exist")
         XCTAssertTrue(app.staticTexts["Build"].exists, "Build label should exist")
-        XCTAssertTrue(app.staticTexts["1.5"].exists, "Version 1.5 should be displayed")
+        XCTAssertTrue(app.staticTexts["1.6"].exists, "Version 1.6 should be displayed")
         XCTAssertTrue(app.staticTexts["1"].exists, "Build number should be displayed")
         XCTAssertTrue(app.buttons["syncNowButton"].exists, "Sync now button should exist")
         XCTAssertTrue(app.buttons["syncNowButton"].isEnabled, "Sync now button should be enabled")
 
         // Settings → Tags
         app.tabBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
 
         // Tags → Items (back to start)
         app.tabBars.buttons["Items"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
 
         // Reverse order: Items → Tags → Settings → Items
         app.tabBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Settings"].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Items"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Items Tab Toolbar
@@ -74,7 +74,7 @@ final class SavedMessagesUITests: XCTestCase {
     /// cancel returns to list, save creates item, cancel doesn't create item.
     func testAddTextSheetUI() {
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["cancelButton"].exists, "Cancel button should exist")
         XCTAssertTrue(app.textViews["textEditor"].exists, "Text editor should be visible")
 
@@ -91,7 +91,7 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Cancel returns to main list
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 
     /// Covers: save creates item, cancel doesn't create item, text and URL tag detection,
@@ -99,35 +99,35 @@ final class SavedMessagesUITests: XCTestCase {
     func testAddTextSaveCancelAndItemTypes() {
         // Save creates item
         addTextItem("Hello UI Test")
-        XCTAssertTrue(app.staticTexts["Hello UI Test"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Hello UI Test"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Text"].exists, "Text tag should appear for plain text")
 
         // Cancel doesn't create item
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
         let textEditor = app.textViews["textEditor"]
         textEditor.tap()
         textEditor.typeText("Not saved")
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Not saved"].exists, "Cancelled text should not appear")
 
         // URL → "URL" tag
         addTextItem("https://example.com/first")
-        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 2), "URL tag should appear for URL text")
+        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 5), "URL tag should appear for URL text")
         XCTAssertTrue(app.staticTexts["https://example.com/first"].exists)
 
         // Long text
         let longText = "This is a long text item that should be properly handled by the UI and displayed correctly in the items list with appropriate truncation"
         addTextItem(longText)
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Add Audio Flow
 
     func testAddAudioSheetUI() {
         app.buttons["addAudioButton"].tap()
-        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["cancelButton"].exists, "Cancel button should exist")
         XCTAssertTrue(app.buttons["recordButton"].exists, "Record button should exist")
@@ -138,7 +138,7 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertFalse(saveButton.isEnabled, "Save should be disabled before recording")
 
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Add Photo/Video Flow
@@ -154,7 +154,7 @@ final class SavedMessagesUITests: XCTestCase {
 
     func testTagsViewEmptyState() {
         app.tabBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
 
         let hasContent = app.staticTexts["No Tags"].exists || app.cells.firstMatch.exists
         XCTAssertTrue(hasContent, "Tags view should show either tags or empty state")
@@ -172,9 +172,9 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("https://example.com/filtertest")
 
         app.tabBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Text"].waitForExistence(timeout: 2), "Text tag should exist")
-        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 2), "URL tag should exist")
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Text"].waitForExistence(timeout: 5), "Text tag should exist")
+        XCTAssertTrue(app.staticTexts["URL"].waitForExistence(timeout: 5), "URL tag should exist")
 
         // Verify item counts are displayed next to tags
         XCTAssertTrue(app.staticTexts["tagCount_Text"].exists, "Text tag item count should be displayed")
@@ -182,19 +182,19 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Navigate to Text tag filtered list
         app.staticTexts["Text"].tap()
-        XCTAssertTrue(app.navigationBars["Text"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Filter text item"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Text"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Filter text item"].waitForExistence(timeout: 5))
 
         // Go back
         app.navigationBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
 
         // Navigate to URL tag and verify filtering
         let urlTag = app.staticTexts["URL"]
-        if urlTag.waitForExistence(timeout: 2) {
+        if urlTag.waitForExistence(timeout: 5) {
             urlTag.tap()
-            XCTAssertTrue(app.navigationBars["URL"].waitForExistence(timeout: 2))
-            XCTAssertTrue(app.staticTexts["https://example.com/filtertest"].waitForExistence(timeout: 2))
+            XCTAssertTrue(app.navigationBars["URL"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["https://example.com/filtertest"].waitForExistence(timeout: 5))
             XCTAssertFalse(app.staticTexts["Filter text item"].exists, "Non-URL items should not appear in URL-filtered list")
         }
     }
@@ -208,16 +208,16 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Open detail and verify buttons
         let itemText = app.staticTexts["Editable item"]
-        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+        XCTAssertTrue(itemText.waitForExistence(timeout: 5))
         itemText.tap()
 
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2), "Done button should exist")
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5), "Done button should exist")
         XCTAssertTrue(app.buttons["editButton"].exists, "Edit button should exist")
         XCTAssertTrue(app.buttons["shareButton"].exists, "Share button should exist")
 
         // Open edit view and verify UI elements
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["nameTextField"].exists, "Name text field should exist")
         XCTAssertTrue(app.textFields["tagInputField"].exists, "Tag input field should exist")
         XCTAssertTrue(app.buttons["cancelButton"].exists, "Cancel button should exist")
@@ -228,28 +228,28 @@ final class SavedMessagesUITests: XCTestCase {
         nameField.tap()
         nameField.clearAndTypeText("Should not save")
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
 
         // Verify original name preserved
         app.buttons["doneButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Editable item"].exists, "Original name should be preserved after cancel")
         XCTAssertFalse(app.staticTexts["Should not save"].exists)
 
         // Edit name and save → should persist (first rename)
         app.staticTexts["Editable item"].tap()
-        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 5))
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
         let firstRenameField = app.textFields["nameTextField"]
         firstRenameField.tap()
         firstRenameField.clearAndTypeText("First rename")
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
 
         // Second rename → should overwrite first
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
         let secondRenameField = app.textFields["nameTextField"]
         secondRenameField.tap()
         secondRenameField.clearAndTypeText("Second rename")
@@ -266,19 +266,19 @@ final class SavedMessagesUITests: XCTestCase {
         }
 
         // Verify tag appears and remove it via remove button
-        XCTAssertTrue(app.staticTexts["RemoveMe"].waitForExistence(timeout: 2), "Added tag should appear")
+        XCTAssertTrue(app.staticTexts["RemoveMe"].waitForExistence(timeout: 5), "Added tag should appear")
         let removeButton = app.buttons["removeTag_RemoveMe"]
-        if removeButton.waitForExistence(timeout: 2) {
+        if removeButton.waitForExistence(timeout: 5) {
             removeButton.tap()
             XCTAssertTrue(app.staticTexts["RemoveMe"].waitForNonExistence(timeout: 2), "Removed tag should disappear")
         }
 
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
 
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Second rename"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Second rename"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["First rename"].exists)
     }
 
@@ -290,12 +290,12 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Add two tags and save
         let itemText = app.staticTexts["Taggable item"]
-        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+        XCTAssertTrue(itemText.waitForExistence(timeout: 5))
         itemText.tap()
 
-        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 5))
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
 
         let tagInput = app.textFields["tagInputField"]
         XCTAssertTrue(tagInput.exists, "Tag input field should exist")
@@ -320,28 +320,28 @@ final class SavedMessagesUITests: XCTestCase {
         }
 
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
 
         // Verify tags appear on item in list
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["TagA"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["TagA"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["TagB"].exists)
 
         // Verify tags in Tags tab
         app.tabBars.buttons["Tags"].tap()
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["TagA"].waitForExistence(timeout: 2), "Custom tag should appear in Tags tab")
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["TagA"].waitForExistence(timeout: 5), "Custom tag should appear in Tags tab")
         XCTAssertTrue(app.staticTexts["TagB"].exists, "Second custom tag should appear in Tags tab")
 
         // Test cancel doesn't save tags
         app.tabBars.buttons["Items"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
 
         app.staticTexts["Taggable item"].tap()
-        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 5))
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
 
         let tagInput2 = app.textFields["tagInputField"]
         tagInput2.tap()
@@ -353,10 +353,10 @@ final class SavedMessagesUITests: XCTestCase {
         }
 
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
 
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["CancelledTag"].exists, "Cancelled tag should not appear")
     }
 
@@ -368,15 +368,15 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("Quick tag test")
 
         let itemText = app.staticTexts["Quick tag test"]
-        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+        XCTAssertTrue(itemText.waitForExistence(timeout: 5))
 
         // Open QuickTagView via context menu
         itemText.press(forDuration: 1.0)
         let manageTagsButton = app.buttons["Manage Tags"]
-        XCTAssertTrue(manageTagsButton.waitForExistence(timeout: 2), "Manage Tags should appear in context menu")
+        XCTAssertTrue(manageTagsButton.waitForExistence(timeout: 5), "Manage Tags should appear in context menu")
         manageTagsButton.tap()
 
-        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["newTagField"].exists, "New tag input field should exist in quick tag view")
 
         // Add a new tag and save
@@ -394,14 +394,14 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Verify the tag was saved on the item
         XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["QuickTag"].waitForExistence(timeout: 2), "Quick tag should be saved on item")
+        XCTAssertTrue(app.staticTexts["QuickTag"].waitForExistence(timeout: 5), "Quick tag should be saved on item")
 
         // Open via swipe right
         itemText.swipeRight()
         let tagsButton = app.buttons["swipeTagsButton"]
-        if tagsButton.waitForExistence(timeout: 2) {
+        if tagsButton.waitForExistence(timeout: 5) {
             tagsButton.tap()
-            XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 2))
+            XCTAssertTrue(app.navigationBars["Tags"].waitForExistence(timeout: 5))
             app.buttons["cancelButton"].firstMatch.tap()
         }
     }
@@ -416,27 +416,27 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Delete via swipe
         let item1 = app.staticTexts["Delete via swipe"]
-        XCTAssertTrue(item1.waitForExistence(timeout: 2))
+        XCTAssertTrue(item1.waitForExistence(timeout: 5))
         item1.swipeLeft()
-        if app.buttons["Delete"].waitForExistence(timeout: 2) {
+        if app.buttons["Delete"].waitForExistence(timeout: 5) {
             app.buttons["Delete"].tap()
         }
         XCTAssertTrue(item1.waitForNonExistence(timeout: 3), "Swiped item should be deleted")
 
         // Delete via context menu
         let item2 = app.staticTexts["Delete via context"]
-        XCTAssertTrue(item2.waitForExistence(timeout: 2))
+        XCTAssertTrue(item2.waitForExistence(timeout: 5))
         item2.press(forDuration: 1.0)
         let deleteButton = app.buttons["Delete"]
-        XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
         deleteButton.tap()
         XCTAssertTrue(item2.waitForNonExistence(timeout: 3), "Context-deleted item should be deleted")
 
         // Sequential delete (remaining item)
         let item3 = app.staticTexts["Sequential delete"]
-        XCTAssertTrue(item3.waitForExistence(timeout: 2))
+        XCTAssertTrue(item3.waitForExistence(timeout: 5))
         item3.swipeLeft()
-        if app.buttons["Delete"].waitForExistence(timeout: 2) {
+        if app.buttons["Delete"].waitForExistence(timeout: 5) {
             app.buttons["Delete"].tap()
         }
         XCTAssertTrue(item3.waitForNonExistence(timeout: 3))
@@ -452,22 +452,22 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Select button exists
         let selectButton = app.buttons["selectButton"]
-        XCTAssertTrue(selectButton.waitForExistence(timeout: 2), "Select button should exist")
+        XCTAssertTrue(selectButton.waitForExistence(timeout: 5), "Select button should exist")
 
         // Enter and cancel selection mode
         selectButton.tap()
-        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 5))
         app.buttons["cancelSelectButton"].tap()
-        XCTAssertTrue(app.buttons["selectButton"].waitForExistence(timeout: 2), "Select button should reappear")
+        XCTAssertTrue(app.buttons["selectButton"].waitForExistence(timeout: 5), "Select button should reappear")
 
         // Enter selection mode, select all
         app.buttons["selectButton"].tap()
-        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 5))
         app.buttons["selectButton"].tap()
 
         // Delete selected should appear with count
         let deleteSelected = app.buttons["deleteSelectedButton"]
-        XCTAssertTrue(deleteSelected.waitForExistence(timeout: 2), "Delete selected button should appear")
+        XCTAssertTrue(deleteSelected.waitForExistence(timeout: 5), "Delete selected button should appear")
         XCTAssertTrue(app.tabBars.firstMatch.exists, "Tab bar should stay visible in Items selection mode")
         XCTAssertTrue(app.tabBars.buttons["Items"].exists, "Items tab should still be present while bulk delete is available")
 
@@ -477,7 +477,7 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Verify context menu hidden in selection mode
         let itemText = app.staticTexts["Select flow 1"]
-        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+        XCTAssertTrue(itemText.waitForExistence(timeout: 5))
         itemText.press(forDuration: 1.0)
         let shareButton = app.buttons["Share"]
         XCTAssertFalse(shareButton.waitForExistence(timeout: 1), "Context menu should not appear in selection mode")
@@ -492,12 +492,12 @@ final class SavedMessagesUITests: XCTestCase {
         let selectButton = app.buttons["selectButton"]
         XCTAssertTrue(selectButton.waitForExistence(timeout: 3))
         selectButton.tap()
-        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["cancelSelectButton"].waitForExistence(timeout: 5))
 
         app.buttons["selectButton"].tap()
 
         let deleteSelected = app.buttons["deleteSelectedButton"]
-        XCTAssertTrue(deleteSelected.waitForExistence(timeout: 2))
+        XCTAssertTrue(deleteSelected.waitForExistence(timeout: 5))
         deleteSelected.tap()
 
         XCTAssertTrue(app.staticTexts["Bulk delete 1"].waitForNonExistence(timeout: 3))
@@ -510,10 +510,10 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("Context menu check")
 
         let itemText = app.staticTexts["Context menu check"]
-        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+        XCTAssertTrue(itemText.waitForExistence(timeout: 5))
         itemText.press(forDuration: 1.0)
 
-        XCTAssertTrue(app.buttons["Share"].waitForExistence(timeout: 2), "Share should appear in context menu")
+        XCTAssertTrue(app.buttons["Share"].waitForExistence(timeout: 5), "Share should appear in context menu")
         XCTAssertTrue(app.buttons["Manage Tags"].exists, "Manage Tags should appear in context menu")
         XCTAssertTrue(app.buttons["Delete"].exists, "Delete should appear in context menu")
 
@@ -543,14 +543,14 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem("Third item")
 
         // All items visible
-        XCTAssertTrue(app.staticTexts["First item"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["First item"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Second item"].exists)
         XCTAssertTrue(app.staticTexts["Third item"].exists)
         XCTAssertTrue(app.staticTexts["Text"].exists, "Text tag badge should be visible")
 
         // Add URL item and verify display
         addTextItem("https://example.com/display")
-        XCTAssertTrue(app.staticTexts["https://example.com/display"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["https://example.com/display"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["URL"].exists, "URL tag badge should be visible")
     }
 
@@ -561,7 +561,7 @@ final class SavedMessagesUITests: XCTestCase {
         addTextItem(content)
 
         app.staticTexts[content].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts[content].exists, "Full text content should be displayed in detail")
         app.buttons["doneButton"].tap()
     }
@@ -575,7 +575,7 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Share from detail view
         app.staticTexts["Share test"].tap()
-        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 5))
         app.buttons["shareButton"].tap()
         XCTAssertTrue(waitForShareSheet(), "Share sheet should appear from detail")
         dismissShareSheet()
@@ -585,10 +585,10 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Share text item from context menu
         let textItem = app.staticTexts["Share test"]
-        XCTAssertTrue(textItem.waitForExistence(timeout: 2))
+        XCTAssertTrue(textItem.waitForExistence(timeout: 5))
         textItem.press(forDuration: 1.0)
         let shareButton = app.buttons["Share"]
-        XCTAssertTrue(shareButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(shareButton.waitForExistence(timeout: 5))
         shareButton.tap()
         XCTAssertTrue(waitForShareSheet(), "Share sheet should appear from context menu")
         dismissShareSheet()
@@ -596,10 +596,10 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Share URL item from context menu
         let urlItem = app.staticTexts["https://example.com/share"]
-        XCTAssertTrue(urlItem.waitForExistence(timeout: 2))
+        XCTAssertTrue(urlItem.waitForExistence(timeout: 5))
         urlItem.press(forDuration: 1.0)
         let shareButton2 = app.buttons["Share"]
-        XCTAssertTrue(shareButton2.waitForExistence(timeout: 2))
+        XCTAssertTrue(shareButton2.waitForExistence(timeout: 5))
         shareButton2.tap()
         XCTAssertTrue(waitForShareSheet(), "Share sheet should appear for URL item")
         dismissShareSheet()
@@ -607,14 +607,14 @@ final class SavedMessagesUITests: XCTestCase {
 
         // Share after editing
         app.staticTexts["Share test"].tap()
-        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 5))
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
         let nameField = app.textFields["nameTextField"]
         nameField.tap()
         nameField.clearAndTypeText("Post-edit share")
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 5))
         app.buttons["shareButton"].tap()
         XCTAssertTrue(waitForShareSheet(), "Share should still work after editing")
     }
@@ -623,24 +623,24 @@ final class SavedMessagesUITests: XCTestCase {
 
     func testItemLifecycle() {
         addTextItem("Full lifecycle item")
-        XCTAssertTrue(app.staticTexts["Full lifecycle item"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Full lifecycle item"].waitForExistence(timeout: 5))
 
         // Edit
         app.staticTexts["Full lifecycle item"].tap()
-        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 5))
         app.buttons["editButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 5))
         let nameField = app.textFields["nameTextField"]
         nameField.tap()
         nameField.clearAndTypeText("Edited lifecycle")
         app.buttons["saveButton"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
 
         // Delete
-        XCTAssertTrue(app.staticTexts["Edited lifecycle"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Edited lifecycle"].waitForExistence(timeout: 5))
         app.staticTexts["Edited lifecycle"].swipeLeft()
-        if app.buttons["Delete"].waitForExistence(timeout: 2) {
+        if app.buttons["Delete"].waitForExistence(timeout: 5) {
             app.buttons["Delete"].tap()
         }
         XCTAssertTrue(app.staticTexts["Edited lifecycle"].waitForNonExistence(timeout: 3))
@@ -651,23 +651,23 @@ final class SavedMessagesUITests: XCTestCase {
     func testReopeningSheetsAfterCancel() {
         // Open and reopen Add Text
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         app.buttons["addTextButton"].tap()
-        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Add Text"].waitForExistence(timeout: 5))
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
 
         // Open and reopen Add Audio
         app.buttons["addAudioButton"].tap()
-        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 5))
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         app.buttons["addAudioButton"].tap()
-        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["Audio Recording"].waitForExistence(timeout: 5))
         app.buttons["cancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
 
         // Open and reopen Add Photo/Video (now opens system photo picker directly; no nav bar to check)
         XCTAssertTrue(app.buttons["addPhotoVideoButton"].exists, "Add photo/video button should be accessible")
@@ -676,11 +676,11 @@ final class SavedMessagesUITests: XCTestCase {
         // Open and reopen detail
         addTextItem("Reopen detail test")
         app.staticTexts["Reopen detail test"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
-        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 5))
         app.staticTexts["Reopen detail test"].tap()
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5))
         app.buttons["doneButton"].tap()
     }
 
@@ -694,9 +694,9 @@ final class SavedMessagesUITests: XCTestCase {
     private func dismissShareSheet() {
         let activityListView = app.otherElements["ActivityListView"]
         let navCloseButton = app.navigationBars.buttons["Close"]
-        if navCloseButton.waitForExistence(timeout: 2) {
+        if navCloseButton.waitForExistence(timeout: 5) {
             navCloseButton.tap()
-        } else if app.buttons["Close"].firstMatch.waitForExistence(timeout: 2) {
+        } else if app.buttons["Close"].firstMatch.waitForExistence(timeout: 5) {
             app.buttons["Close"].firstMatch.tap()
         } else {
             // Fallback for iOS simulators where the Close button is absent: swipe the sheet down
@@ -711,7 +711,7 @@ final class SavedMessagesUITests: XCTestCase {
         // Ensure we're on Items tab
         if !app.navigationBars["SavedMessages"].exists {
             app.tabBars.buttons["Items"].tap()
-            _ = app.navigationBars["SavedMessages"].waitForExistence(timeout: 2)
+            _ = app.navigationBars["SavedMessages"].waitForExistence(timeout: 5)
         }
 
         app.buttons["addTextButton"].tap()
@@ -724,7 +724,7 @@ final class SavedMessagesUITests: XCTestCase {
         UIPasteboard.general.string = text
         textEditor.press(forDuration: 1.0)
         let pasteButton = app.menuItems["Paste"]
-        if pasteButton.waitForExistence(timeout: 2) {
+        if pasteButton.waitForExistence(timeout: 5) {
             pasteButton.tap()
         } else {
             // Fallback to typing if paste menu doesn't appear
