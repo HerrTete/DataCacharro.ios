@@ -28,7 +28,7 @@ jobs:
         run: |
           xcodebuild -project SavedMessages.xcodeproj \
             -scheme SavedMessages \
-            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             build
