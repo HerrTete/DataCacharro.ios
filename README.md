@@ -1,8 +1,8 @@
 # SavedMessages
 
-iOS + iPad App for SavedMessages — Version 1.1
+iOS + iPad App for SavedMessages — Version 1.7
 
-## Features (Version 1.1)
+## Features (Version 1.7)
 
 ### Inhalte speichern
 - **Text & URLs**: Freitext oder URLs hinzufügen — URLs werden automatisch erkannt und mit dem Tag „URL" versehen
@@ -43,6 +43,7 @@ iOS + iPad App for SavedMessages — Version 1.1
 - **Swipe-Aktionen**: Rechts-Swipe für Tags, Links-Swipe zum Löschen
 - **Leerer Zustand**: Informative Anzeige wenn keine Einträge vorhanden
 - **Settings**: App-Version und Build-Nummer anzeigen
+- **Sync Fixes (1.7)**: Zuverlässige bidirektionale iCloud-Synchronisation via Share Extension und App.
 
 ## Daten-Architektur
 
@@ -122,9 +123,10 @@ Dateiname-Schema: `{UUID}.{Erweiterung}` (z. B. `A1B2C3D4-E5F6-7890-ABCD-EF12345
 Die App führt eine **bidirektionale Synchronisation** (lokal ↔ iCloud) durch:
 
 **Upload (lokal → iCloud):**
-- Nach jedem Speichervorgang wird `items.json` in den iCloud-Documents-Container kopiert
+- Nach jedem Speichervorgang (sowohl in der Haupt-App als auch in der Share Extension) wird der Zustand mit iCloud gemergt und hochgeladen
 - Neue Dateien im `Files/`-Ordner werden ebenfalls in den iCloud-Container kopiert
 - Die Datei `deletedIDs.json` (Tombstones) wird ebenfalls hochgeladen
+- **Wichtig:** Da auch die Share Extension direkt nach iCloud hochlädt, werden geteilte Inhalte sofort synchronisiert, ohne dass die Haupt-App geöffnet werden muss.
 
 **Download (iCloud → lokal):**
 - Beim App-Start, beim Aktivieren der App und bei erkannten iCloud-Änderungen wird `syncFromiCloud()` ausgelöst
@@ -147,6 +149,7 @@ Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.Sav
 - `Shared/StorageConstants.swift` — App-Group-ID, iCloud-Container-ID, Datei-/Ordnernamen und URL-Helfer
 - `Shared/ItemTypeHelpers.swift` — Typbestimmung (MIME-Type, Dateiendung), Standard-Tags, URL-Erkennung
 - `Shared/LocationService.swift` — Standortdienst (CLLocationManager + CLGeocoder, Singleton)
+- `Shared/SyncMergeHelper.swift` — Geteilte LWW-Element-Set Merge-Logik für iCloud-Sync
 
 ## Projekt-Struktur
 
@@ -155,7 +158,8 @@ Shared/                             ← Gemeinsamer Code (App + Extension)
 ├── DataItem.swift                  ← Datenmodell
 ├── StorageConstants.swift          ← Zentrale Konstanten & Pfade
 ├── LocationService.swift           ← Standortdienst (CLLocationManager + Geocoding)
-└── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
+├── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
+└── SyncMergeHelper.swift           ← Geteilte iCloud Merge-Logik
 SavedMessages/                      ← Haupt-App
 ├── SavedMessagesApp.swift          ← App-Einstiegspunkt
 ├── ContentView.swift               ← Tab-Ansicht (Items, Settings, Tags)
