@@ -24,6 +24,8 @@
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* WebPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6E7F8A9B0C1D2 /* WebPreviewView.swift */; };
 		B2C3D4E5F60718293A4B5C6D /* SyncMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* SyncMergeTests.swift */; };
 		CC1122334455667788990011 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0011223344556677889900 /* LocationService.swift */; };
+		EE99887766554433221100AA /* SyncMergeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC99887766554433221100FF /* SyncMergeHelper.swift */; };
+		FF99887766554433221100BB /* SyncMergeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC99887766554433221100FF /* SyncMergeHelper.swift */; };
 		CC3D4E5F6A7B8C9D0E1F2A3B /* StorageConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */; };
 		DD2233445566778899001122 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0011223344556677889900 /* LocationService.swift */; };
 		DD4E5F6A7B8C9D0E1F2A3B4C /* StorageConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */; };
@@ -92,6 +94,7 @@
 		ABEA5C8708FF4A21A5E013B4 /* CameraPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPickerView.swift; sourceTree = "<group>"; };
 		AC3F05E201314119BD834C37 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0011223344556677889900 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		CC99887766554433221100FF /* SyncMergeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMergeHelper.swift; sourceTree = "<group>"; };
 		BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemTypeHelpers.swift; sourceTree = "<group>"; };
 		BBCC2233445566778899DDEE /* SavedMessagesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMessagesUITests.swift; sourceTree = "<group>"; };
 		BBCC2233445566778899DDEF /* ShareExtensionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareExtensionUITests.swift; sourceTree = "<group>"; };
@@ -230,6 +233,7 @@
 				AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */,
 				BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */,
 				BB0011223344556677889900 /* LocationService.swift */,
+				CC99887766554433221100FF /* SyncMergeHelper.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -425,6 +429,7 @@
 				CC3D4E5F6A7B8C9D0E1F2A3B /* StorageConstants.swift in Sources */,
 				EE5F6A7B8C9D0E1F2A3B4C5D /* ItemTypeHelpers.swift in Sources */,
 				DD2233445566778899001122 /* LocationService.swift in Sources */,
+				EE99887766554433221100AA /* SyncMergeHelper.swift in Sources */,
 				FB2FBCDC2E8143D882036336 /* ItemListView.swift in Sources */,
 				990BE438587F488882DCB3CF /* ItemDetailView.swift in Sources */,
 				207029D477134FFCBA734685 /* AddTextView.swift in Sources */,
@@ -448,6 +453,7 @@
 				DD4E5F6A7B8C9D0E1F2A3B4C /* StorageConstants.swift in Sources */,
 				FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */,
 				CC1122334455667788990011 /* LocationService.swift in Sources */,
+				FF99887766554433221100BB /* SyncMergeHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -539,7 +545,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -556,7 +562,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -573,7 +579,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -591,7 +597,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -609,7 +615,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -633,7 +639,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SavedMessages/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -657,7 +663,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SavedMessages/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -740,7 +746,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

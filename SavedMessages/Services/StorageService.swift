@@ -92,7 +92,11 @@ class StorageService: ObservableObject {
 
     func saveItems() {
         saveItemsLocally()
-        syncToiCloud()
+        // Only sync to iCloud if we're not in the middle of a syncFromiCloud
+        // (which already handles uploading the merged result)
+        if !isSyncing {
+            syncToiCloud()
+        }
     }
 
     /// Writes the current items array to disk using file coordination,
@@ -206,6 +210,13 @@ class StorageService: ObservableObject {
     func deleteItem(_ item: DataItem) {
         if let fileName = item.fileName, let filesURL = StorageConstants.filesURL {
             try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
+            // Also remove from iCloud so the file doesn't linger or get re-downloaded
+            if let iCloudURL = iCloudURL {
+                let iCloudFile = iCloudURL
+                    .appendingPathComponent(StorageConstants.filesDirectoryName)
+                    .appendingPathComponent(fileName)
+                try? FileManager.default.removeItem(at: iCloudFile)
+            }
         }
         items.removeAll { $0.id == item.id }
         deletedIDs.insert(item.id)
@@ -218,6 +229,13 @@ class StorageService: ObservableObject {
         for item in toDelete {
             if let fileName = item.fileName, let filesURL = StorageConstants.filesURL {
                 try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
+                // Also remove from iCloud so the file doesn't linger or get re-downloaded
+                if let iCloudURL = iCloudURL {
+                    let iCloudFile = iCloudURL
+                        .appendingPathComponent(StorageConstants.filesDirectoryName)
+                        .appendingPathComponent(fileName)
+                    try? FileManager.default.removeItem(at: iCloudFile)
+                }
             }
         }
         items.removeAll { ids.contains($0.id) }
@@ -338,6 +356,12 @@ class StorageService: ObservableObject {
                 return
             }
 
+            // Trigger download of iCloud metadata files if they are placeholders
+            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
+            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+            try? FileManager.default.startDownloadingUbiquitousItem(at: remoteItemsURL)
+            try? FileManager.default.startDownloadingUbiquitousItem(at: remoteDeletedIDsURL)
+
             // Load local items directly from file
             let localItems: [DataItem]
             if let url = StorageConstants.itemsFileURL,
@@ -349,7 +373,6 @@ class StorageService: ObservableObject {
             }
 
             // Load remote items
-            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
             let remoteItems: [DataItem]
             if let data = try? Data(contentsOf: remoteItemsURL),
                let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
@@ -368,7 +391,7 @@ class StorageService: ObservableObject {
                 localDeletedIDs = []
             }
 
-            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+
             let remoteDeletedIDs: Set<String>
             if let data = try? Data(contentsOf: remoteDeletedIDsURL),
                let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -380,7 +403,7 @@ class StorageService: ObservableObject {
             let mergedDeletedIDs = localDeletedIDs.union(remoteDeletedIDs)
 
             // Merge items using LWW-Element-Set strategy
-            let mergedItems = StorageService.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
+            let mergedItems = SyncMergeHelper.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
 
             // Download files for items from iCloud that are missing locally
             self.downloadMissingFiles(from: iCloudURL, for: mergedItems)
@@ -438,36 +461,9 @@ class StorageService: ObservableObject {
         }
     }
 
-    /// Merges local and remote items using a Last-Writer-Wins Element-Set strategy.
-    /// Items are matched by ID. For items existing on both sides, the one with
-    /// the newer `effectiveModifiedAt` wins. When timestamps are equal, a
-    /// deterministic fingerprint comparison ensures both devices converge to
-    /// the same result regardless of which side is treated as "local".
-    /// Deleted IDs are removed from the result.
+    /// Delegates to SyncMergeHelper for the shared LWW-Element-Set merge logic.
     static func mergeItems(local: [DataItem], remote: [DataItem], deletedIDs: Set<String>) -> [DataItem] {
-        var merged: [String: DataItem] = [:]
-
-        for item in local {
-            merged[item.id] = item
-        }
-
-        for item in remote {
-            if let existing = merged[item.id] {
-                if item.effectiveModifiedAt > existing.effectiveModifiedAt ||
-                   (item.effectiveModifiedAt == existing.effectiveModifiedAt &&
-                    item.mergeFingerprint > existing.mergeFingerprint) {
-                    merged[item.id] = item
-                }
-            } else {
-                merged[item.id] = item
-            }
-        }
-
-        for id in deletedIDs {
-            merged.removeValue(forKey: id)
-        }
-
-        return Array(merged.values).sorted { $0.createdAt > $1.createdAt }
+        SyncMergeHelper.mergeItems(local: local, remote: remote, deletedIDs: deletedIDs)
     }
 
     private func downloadMissingFiles(from iCloudURL: URL, for items: [DataItem]) {
@@ -479,18 +475,34 @@ class StorageService: ObservableObject {
         for fileName in neededFiles {
             let localFile = localFilesURL.appendingPathComponent(fileName)
             let remoteFile = iCloudFilesURL.appendingPathComponent(fileName)
-            if !FileManager.default.fileExists(atPath: localFile.path) &&
-               FileManager.default.fileExists(atPath: remoteFile.path) {
-                try? FileManager.default.copyItem(at: remoteFile, to: localFile)
+            if !FileManager.default.fileExists(atPath: localFile.path) {
+                // Trigger download of iCloud placeholder files
+                try? FileManager.default.startDownloadingUbiquitousItem(at: remoteFile)
+                if FileManager.default.fileExists(atPath: remoteFile.path) {
+                    try? FileManager.default.copyItem(at: remoteFile, to: localFile)
+                }
             }
         }
     }
 
+    private var isSyncingToiCloud = false
+
     private func syncToiCloud() {
+        guard !isSyncingToiCloud else { return }
+        isSyncingToiCloud = true
+
         DispatchQueue.global(qos: .background).async { [weak self] in
             guard let self = self else { return }
+            defer { DispatchQueue.main.async { self.isSyncingToiCloud = false } }
             guard let iCloudURL = self.iCloudURL else { return }
             try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true)
+
+            // Trigger download of remote files before reading to avoid treating
+            // evicted iCloud placeholders as empty state
+            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
+            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+            try? FileManager.default.startDownloadingUbiquitousItem(at: remoteItemsURL)
+            try? FileManager.default.startDownloadingUbiquitousItem(at: remoteDeletedIDsURL)
 
             // Load local items from disk
             let localItems: [DataItem]
@@ -512,7 +524,6 @@ class StorageService: ObservableObject {
             }
 
             // Load remote items from iCloud
-            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
             let remoteItems: [DataItem]
             if let data = try? Data(contentsOf: remoteItemsURL),
                let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
@@ -521,7 +532,7 @@ class StorageService: ObservableObject {
                 remoteItems = []
             }
 
-            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+
             let remoteDeletedIDs: Set<String>
             if let data = try? Data(contentsOf: remoteDeletedIDsURL),
                let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -532,7 +543,7 @@ class StorageService: ObservableObject {
 
             // Merge local + remote using LWW-Element-Set strategy
             let mergedDeletedIDs = localDeletedIDs.union(remoteDeletedIDs)
-            let mergedItems = StorageService.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
+            let mergedItems = SyncMergeHelper.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
 
             // Write merged items to iCloud
             if let data = try? JSONEncoder().encode(mergedItems) {

@@ -379,6 +379,7 @@ class ShareViewController: UIViewController {
         let coordinator = NSFileCoordinator()
         var coordError: NSError?
         var writeSuccess = false
+        var allItemsAfterCommit: [DataItem] = []
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
             if FileManager.default.fileExists(atPath: coordinatedURL.path),
@@ -398,11 +399,13 @@ class ShareViewController: UIViewController {
             do {
                 try encoded.write(to: coordinatedURL, options: .atomic)
                 writeSuccess = true
+                allItemsAfterCommit = existing
             } catch { return }
         }
 
         guard coordError == nil, writeSuccess else { return false }
         notifyMainApp()
+        uploadToiCloud(items: allItemsAfterCommit)
         return true
     }
 
@@ -412,6 +415,86 @@ class ShareViewController: UIViewController {
         let center = CFNotificationCenterGetDarwinNotifyCenter()
         let name = CFNotificationName(StorageConstants.itemsChangedNotification as CFString)
         CFNotificationCenterPostNotification(center, name, nil, nil, true)
+    }
+
+    // MARK: - iCloud Upload
+
+    /// Merges the local state with the current iCloud state and uploads the result.
+    /// This ensures items saved via the Share Extension reach other devices even when
+    /// the main app is not running.
+    private func uploadToiCloud(items localItems: [DataItem]) {
+        guard let iCloudDocsURL = FileManager.default.url(
+            forUbiquityContainerIdentifier: StorageConstants.iCloudContainerID
+        )?.appendingPathComponent("Documents") else { return }
+
+        try? FileManager.default.createDirectory(at: iCloudDocsURL, withIntermediateDirectories: true)
+
+        let iCloudItemsURL = iCloudDocsURL.appendingPathComponent(StorageConstants.itemsFileName)
+        let iCloudDeletedURL = iCloudDocsURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+
+        // Read local deleted IDs
+        let localDeletedIDs: Set<String>
+        if let url = StorageConstants.deletedIDsFileURL,
+           let data = try? Data(contentsOf: url),
+           let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+            localDeletedIDs = ids
+        } else {
+            localDeletedIDs = []
+        }
+
+        // Read current remote state
+        let remoteItems: [DataItem]
+        if let data = try? Data(contentsOf: iCloudItemsURL),
+           let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+            remoteItems = decoded
+        } else {
+            remoteItems = []
+        }
+
+        let remoteDeletedIDs: Set<String>
+        if let data = try? Data(contentsOf: iCloudDeletedURL),
+           let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+            remoteDeletedIDs = ids
+        } else {
+            remoteDeletedIDs = []
+        }
+
+        // Merge using shared LWW-Element-Set strategy
+        let merged = SyncMergeHelper.mergeItems(
+            local: localItems,
+            remote: remoteItems,
+            localDeletedIDs: localDeletedIDs,
+            remoteDeletedIDs: remoteDeletedIDs
+        )
+
+        // Write merged items to iCloud
+        if let data = try? JSONEncoder().encode(merged.items) {
+            try? data.write(to: iCloudItemsURL, options: .atomic)
+        }
+
+        // Write merged deletedIDs to iCloud
+        if let data = try? JSONEncoder().encode(merged.deletedIDs) {
+            try? data.write(to: iCloudDeletedURL, options: .atomic)
+        }
+
+        // Upload files for the newly committed items
+        if let localFilesURL = StorageConstants.filesURL {
+            let iCloudFilesURL = iCloudDocsURL.appendingPathComponent(StorageConstants.filesDirectoryName)
+            try? FileManager.default.createDirectory(at: iCloudFilesURL, withIntermediateDirectories: true)
+
+            itemsLock.lock()
+            let newFileNames = Set(pendingItems.compactMap { $0.fileName })
+            itemsLock.unlock()
+
+            for fileName in newFileNames {
+                let src = localFilesURL.appendingPathComponent(fileName)
+                let dst = iCloudFilesURL.appendingPathComponent(fileName)
+                if FileManager.default.fileExists(atPath: src.path),
+                   !FileManager.default.fileExists(atPath: dst.path) {
+                    try? FileManager.default.copyItem(at: src, to: dst)
+                }
+            }
+        }
     }
 
     // MARK: - Helpers
